@@ -1,0 +1,333 @@
+import { CandidateProfile } from "@/types";
+
+export const CANONICAL_PERSONAS: CandidateProfile[] = [
+  // 1. Ready for Employment: Rohit Sharma (EV & Mechatronics Specialist - Pune Pilot)
+  {
+    id: "cand-rohit-01",
+    userId: "user-cand-01",
+    headline: "Mechatronics Technician & Certified EV Battery Systems Specialist",
+    summary: "Diploma holder in Mechatronics with hands-on assessment-verified expertise in Battery Management Systems (BMS) testing, thermal balancing, and Siemens PLC programming.",
+    currentDistrict: "Pune",
+    currentState: "Maharashtra",
+    readinessScore: 89.4,
+    skills: [
+      {
+        skillId: "skill-bms",
+        skillName: "Battery Management Systems (BMS)",
+        claimedProficiency: "ADVANCED",
+        assessedScore: 92,
+        verificationStatus: "VERIFIED",
+        verifiedAt: "2026-02-15T10:00:00Z",
+        evidenceCount: 4,
+      },
+      {
+        skillId: "skill-plc",
+        skillName: "PLC Automation & SCADA",
+        claimedProficiency: "ADVANCED",
+        assessedScore: 88,
+        verificationStatus: "VERIFIED",
+        verifiedAt: "2026-02-10T14:30:00Z",
+        evidenceCount: 3,
+      },
+      {
+        skillId: "skill-can",
+        skillName: "CAN Bus Communication",
+        claimedProficiency: "INTERMEDIATE",
+        assessedScore: 85,
+        verificationStatus: "VERIFIED",
+        verifiedAt: "2026-02-12T11:00:00Z",
+        evidenceCount: 2,
+      },
+    ],
+    education: [
+      {
+        id: "edu-01",
+        institutionName: "Government ITI Aundh, Pune",
+        degree: "National Trade Certificate (NTC)",
+        fieldOfStudy: "Mechatronics & EV Systems",
+        startYear: 2023,
+        endYear: 2025,
+        grade: "88.5%",
+      },
+    ],
+    experience: [
+      {
+        id: "exp-01",
+        companyName: "Tata Motors Passenger EV Plant",
+        role: "Vocational Apprentice (Battery Assembly)",
+        district: "Pune",
+        state: "Maharashtra",
+        startDate: "2025-06-01",
+        endDate: "2025-12-31",
+        isCurrent: false,
+        description: "Assisted in HIL test bench calibration and module cell-level telemetry data logging.",
+      },
+    ],
+    projects: [
+      {
+        id: "proj-01",
+        title: "Microcontroller-based 12V Li-ion Active Balancing Rig",
+        description: "Built hardware testbed demonstrating passive and active cell charge equalisation over CAN bus.",
+        skillsUsed: ["skill-bms", "skill-can"],
+        evidenceUrl: "https://careeris.gov.in/evidence/rohit-bms-capstone.pdf",
+      },
+    ],
+    certifications: [
+      {
+        id: "cert-01",
+        name: "Advanced Certificate in EV Battery Management",
+        issuingOrganization: "Automotive Skills Development Council (ASDC)",
+        issueDate: "2025-12-15",
+        verificationUrl: "https://asdc.org.in/verify/CERT-EV-2025-8921",
+      },
+    ],
+  },
+
+  // 2. Primary SIH Persona: Nilesh Purvey (AI Developer Journey)
+  {
+    id: "cand-nilesh-01",
+    userId: "user-cand-nilesh",
+    headline: "B.Tech Graduate & AI Developer (RAG / LLM Specialist)",
+    summary: "20-year-old GBU graduate with verified expertise in Python, Machine Learning, Deep Learning, and building containerized RAG Customer Support Agents.",
+    currentDistrict: "Greater Noida",
+    currentState: "Uttar Pradesh",
+    readinessScore: 91.0,
+    skills: [
+      {
+        skillId: "skill-py",
+        skillName: "Python",
+        claimedProficiency: "ADVANCED",
+        assessedScore: 94,
+        verificationStatus: "VERIFIED",
+        verifiedAt: "2026-02-18T10:00:00Z",
+        evidenceCount: 5,
+      },
+      {
+        skillId: "skill-ml",
+        skillName: "Machine Learning & Scikit-Learn",
+        claimedProficiency: "ADVANCED",
+        assessedScore: 90,
+        verificationStatus: "VERIFIED",
+        verifiedAt: "2026-02-18T11:00:00Z",
+        evidenceCount: 4,
+      },
+      {
+        skillId: "skill-dl-rag",
+        skillName: "Deep Learning & LLM (RAG Systems)",
+        claimedProficiency: "INTERMEDIATE",
+        assessedScore: 89,
+        verificationStatus: "VERIFIED",
+        verifiedAt: "2026-02-20T14:00:00Z",
+        evidenceCount: 3,
+      },
+      {
+        skillId: "skill-docker-cloud",
+        skillName: "Docker & Cloud Deployment (AWS)",
+        claimedProficiency: "INTERMEDIATE",
+        assessedScore: 86,
+        verificationStatus: "VERIFIED",
+        verifiedAt: "2026-02-22T09:30:00Z",
+        evidenceCount: 3,
+      },
+    ],
+    education: [
+      {
+        id: "edu-nilesh-01",
+        institutionName: "Gautam Buddha University (GBU), Greater Noida",
+        degree: "B.Tech Information Technology",
+        fieldOfStudy: "Computer Science & IT",
+        startYear: 2020,
+        endYear: 2024,
+        grade: "8.4 CGPA",
+      },
+    ],
+    experience: [],
+    projects: [
+      {
+        id: "proj-nilesh-01",
+        title: "Customer Support AI Agent (LLM + RAG + Docker + AWS)",
+        description: "Production-ready AI customer agent using FastAPI, Pinecone vector database, Docker containerization, and AWS deployment. Evaluated score: 89/100.",
+        skillsUsed: ["skill-py", "skill-dl-rag", "skill-docker-cloud"],
+        evidenceUrl: "https://github.com/nileshpurvey/customer-support-ai-agent",
+      },
+    ],
+    certifications: [
+      {
+        id: "cert-nilesh-01",
+        name: "Verified AI Developer Pro Track Certificate",
+        issuingOrganization: "CareerIS National Skill Engine",
+        issueDate: "2026-02-22",
+        verificationUrl: "https://careeris.gov.in/verify/CERT-AI-2026-9102",
+      },
+    ],
+  },
+
+  // 3. Candidate with Major Skill Gaps
+  {
+    id: "cand-gap-02",
+    userId: "user-cand-gap",
+    headline: "Junior Electrical ITI Passout seeking Industrial Automation Career",
+    summary: "Foundational knowledge of domestic wiring and basic relay panels seeking to enter Industry 4.0 PLC programming.",
+    currentDistrict: "Nashik",
+    currentState: "Maharashtra",
+    readinessScore: 42.0,
+    skills: [
+      {
+        skillId: "skill-legacy-relay",
+        skillName: "Discrete Electromagnetic Relay Panels",
+        claimedProficiency: "INTERMEDIATE",
+        verificationStatus: "CLAIMED",
+        evidenceCount: 1,
+      },
+    ],
+    education: [
+      {
+        id: "edu-02",
+        institutionName: "Government ITI Nashik",
+        degree: "National Trade Certificate (NTC)",
+        fieldOfStudy: "Electrician",
+        startYear: 2024,
+        endYear: 2025,
+        grade: "72.0%",
+      },
+    ],
+    experience: [],
+    projects: [],
+    certifications: [],
+  },
+
+  // 3. Career Transition Persona (Mechanical Engineer -> EV Specialist)
+  {
+    id: "cand-trans-03",
+    userId: "user-cand-trans",
+    headline: "Mechanical Maintenance Engineer transitioning to EV Battery Calibration",
+    summary: "3 years of manufacturing plant maintenance with core CAD and mechanical vibration expertise, actively reskilling into battery thermal management.",
+    currentDistrict: "Pune",
+    currentState: "Maharashtra",
+    readinessScore: 58.5,
+    skills: [
+      {
+        skillId: "skill-cnc",
+        skillName: "CNC Multi-Axis Machining",
+        claimedProficiency: "ADVANCED",
+        assessedScore: 84,
+        verificationStatus: "VERIFIED",
+        evidenceCount: 3,
+      },
+      {
+        skillId: "skill-cad-solidworks",
+        skillName: "3D Parametric CAD & SolidWorks",
+        claimedProficiency: "ADVANCED",
+        verificationStatus: "VERIFIED",
+        evidenceCount: 2,
+      },
+    ],
+    education: [
+      {
+        id: "edu-03",
+        institutionName: "Government Polytechnic Pune",
+        degree: "Diploma in Mechanical Engineering",
+        fieldOfStudy: "Mechanical Engineering",
+        startYear: 2020,
+        endYear: 2023,
+      },
+    ],
+    experience: [
+      {
+        id: "exp-03",
+        companyName: "Bharat Forge Limited",
+        role: "Maintenance Technician",
+        district: "Pune",
+        state: "Maharashtra",
+        startDate: "2023-08-01",
+        endDate: "2026-01-15",
+        isCurrent: false,
+        description: "Hydraulic press maintenance and CNC alignment.",
+      },
+    ],
+    projects: [],
+    certifications: [],
+  },
+
+  // 4. Strong Skills but Weak Evidence
+  {
+    id: "cand-evid-04",
+    userId: "user-cand-evid",
+    headline: "Self-taught Python & Industrial Telemetry Programmer",
+    summary: "High practical proficiency in Python data pipelines and MQTT brokers with zero formal certifications or proctored assessment records.",
+    currentDistrict: "Bengaluru Urban",
+    currentState: "Karnataka",
+    readinessScore: 64.0,
+    skills: [
+      {
+        skillId: "skill-py-data",
+        skillName: "Python Data Engineering & ML",
+        claimedProficiency: "ADVANCED",
+        verificationStatus: "CLAIMED",
+        evidenceCount: 0,
+      },
+      {
+        skillId: "skill-sql",
+        skillName: "SQL Database Querying",
+        claimedProficiency: "ADVANCED",
+        verificationStatus: "CLAIMED",
+        evidenceCount: 0,
+      },
+    ],
+    education: [
+      {
+        id: "edu-04",
+        institutionName: "Bangalore University",
+        degree: "B.Sc Computer Science",
+        fieldOfStudy: "Computer Science",
+        startYear: 2022,
+        endYear: 2025,
+      },
+    ],
+    experience: [],
+    projects: [],
+    certifications: [],
+  },
+
+  // 5. Emerging Occupation Persona (Robotics & Cobots)
+  {
+    id: "cand-emerg-05",
+    userId: "user-cand-emerg",
+    headline: "Robotics Workcell Integrator & ROS 2 Certified Specialist",
+    summary: "Specialized in collaborative robot (Cobot) arm kinematic planning, machine vision inspection, and ROS 2 industrial nodes.",
+    currentDistrict: "Bengaluru Urban",
+    currentState: "Karnataka",
+    readinessScore: 82.5,
+    skills: [
+      {
+        skillId: "skill-ros",
+        skillName: "Industrial Robotics (ROS 2)",
+        claimedProficiency: "ADVANCED",
+        assessedScore: 90,
+        verificationStatus: "VERIFIED",
+        evidenceCount: 3,
+      },
+      {
+        skillId: "skill-py",
+        skillName: "Python",
+        claimedProficiency: "ADVANCED",
+        assessedScore: 86,
+        verificationStatus: "VERIFIED",
+        evidenceCount: 2,
+      },
+    ],
+    education: [
+      {
+        id: "edu-05",
+        institutionName: "Government ITI Hosur Road, Bengaluru",
+        degree: "Centre of Excellence Diploma in Robotics & Automation",
+        fieldOfStudy: "Robotics",
+        startYear: 2023,
+        endYear: 2025,
+      },
+    ],
+    experience: [],
+    projects: [],
+    certifications: [],
+  },
+];

@@ -1,0 +1,160 @@
+import { TrainerProfile } from "@/types/decisionIntelligence";
+
+export const CANONICAL_TRAINERS: TrainerProfile[] = [
+  // Government ITI Aundh (Pune)
+  {
+    id: "tr-aundh-01",
+    name: "Dr. Suresh Deshmukh",
+    instituteId: "tp-giti-pune",
+    instituteName: "Government ITI Aundh, Pune",
+    district: "Pune",
+    state: "Maharashtra",
+    competencies: [
+      {
+        skillId: "skill-bms",
+        skillName: "Battery Management Systems (BMS)",
+        proficiency: "ADVANCED",
+        yearsExperience: 8,
+        isCertified: true,
+        certificationDate: "2025-06-15",
+      },
+      {
+        skillId: "skill-can",
+        skillName: "CAN Bus Communication",
+        proficiency: "ADVANCED",
+        yearsExperience: 10,
+        isCertified: true,
+        certificationDate: "2024-03-10",
+      },
+    ],
+    assignedCourses: ["course-bms-01"],
+    weeklyCapacityHours: 36,
+    isAvailableForRetraining: false,
+    status: "ACTIVE",
+  },
+  {
+    id: "tr-aundh-02",
+    name: "Prof. Anjali Kulkarni",
+    instituteId: "tp-giti-pune",
+    instituteName: "Government ITI Aundh, Pune",
+    district: "Pune",
+    state: "Maharashtra",
+    competencies: [
+      {
+        skillId: "skill-plc",
+        skillName: "Programmable Logic Controllers (PLC)",
+        proficiency: "MASTER",
+        yearsExperience: 14,
+        isCertified: true,
+        certificationDate: "2023-11-20",
+      },
+      {
+        skillId: "skill-scada",
+        skillName: "SCADA Systems",
+        proficiency: "ADVANCED",
+        yearsExperience: 12,
+        isCertified: true,
+        certificationDate: "2024-01-15",
+      },
+    ],
+    assignedCourses: ["course-plc-01"],
+    weeklyCapacityHours: 32,
+    isAvailableForRetraining: true,
+    status: "ACTIVE",
+  },
+
+  // NSTI Mumbai
+  {
+    id: "tr-nsti-01",
+    name: "Er. Rajesh Iyer",
+    instituteId: "tp-nsti-mumbai",
+    instituteName: "National Skill Training Institute (NSTI) Mumbai",
+    district: "Mumbai Suburban",
+    state: "Maharashtra",
+    competencies: [
+      {
+        skillId: "skill-py",
+        skillName: "Python",
+        proficiency: "ADVANCED",
+        yearsExperience: 9,
+        isCertified: true,
+        certificationDate: "2024-05-12",
+      },
+      {
+        skillId: "skill-sql",
+        skillName: "SQL Database Querying",
+        proficiency: "ADVANCED",
+        yearsExperience: 11,
+        isCertified: true,
+        certificationDate: "2023-08-10",
+      },
+    ],
+    assignedCourses: ["course-py-01"],
+    weeklyCapacityHours: 35,
+    isAvailableForRetraining: false,
+    status: "ACTIVE",
+  },
+
+  // PSG Polytechnic (Coimbatore)
+  {
+    id: "tr-psg-01",
+    name: "Dr. K. Swaminathan",
+    instituteId: "tp-psg-poly",
+    instituteName: "PSG Polytechnic College, Coimbatore",
+    district: "Coimbatore",
+    state: "Tamil Nadu",
+    competencies: [
+      {
+        skillId: "skill-cnc",
+        skillName: "CNC Multi-Axis Machining",
+        proficiency: "MASTER",
+        yearsExperience: 16,
+        isCertified: true,
+        certificationDate: "2022-09-18",
+      },
+      {
+        skillId: "skill-plc",
+        skillName: "Programmable Logic Controllers (PLC)",
+        proficiency: "INTERMEDIATE",
+        yearsExperience: 6,
+        isCertified: true,
+        certificationDate: "2024-07-22",
+      },
+    ],
+    assignedCourses: ["course-cnc-01"],
+    weeklyCapacityHours: 30,
+    isAvailableForRetraining: true,
+    status: "ACTIVE",
+  },
+
+  // Government ITI Bengaluru
+  {
+    id: "tr-giti-blr-01",
+    name: "Er. Ramesh Gowda",
+    instituteId: "tp-giti-blr",
+    instituteName: "Government ITI Hosur Road, Bengaluru",
+    district: "Bengaluru Urban",
+    state: "Karnataka",
+    competencies: [
+      {
+        skillId: "skill-ros",
+        skillName: "Industrial Robotics (ROS 2)",
+        proficiency: "ADVANCED",
+        yearsExperience: 7,
+        isCertified: true,
+        certificationDate: "2025-01-10",
+      },
+      {
+        skillId: "skill-py",
+        skillName: "Python",
+        proficiency: "INTERMEDIATE",
+        yearsExperience: 5,
+        isCertified: false,
+      },
+    ],
+    assignedCourses: ["course-ros-01"],
+    weeklyCapacityHours: 35,
+    isAvailableForRetraining: true,
+    status: "ACTIVE",
+  },
+];

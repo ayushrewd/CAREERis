@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Squircle Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#091428" />
+      <stop offset="100%" stop-color="#020817" />
+    </linearGradient>
+
+    <!-- Outer 'C' Curve Gradient -->
+    <linearGradient id="cGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0052cc" />
+      <stop offset="50%" stop-color="#0066ff" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <!-- Inner 'i' & Arrow Gradient -->
+    <linearGradient id="iGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0070f3" />
+      <stop offset="100%" stop-color="#00d4ff" />
+    </linearGradient>
+
+    <!-- Ambient Shadow & Glow -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#0070f3" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- App Icon Background Squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Logo Mark Group -->
+  <g transform="translate(64, 64)" filter="url(#glow)">
+    <!-- Outer 'C' Shape (Thick Modern Ring) -->
+    <path 
+      d="M 230 40 
+         C 120 40 40 120 40 230 
+         C 40 340 120 420 230 420 
+         C 285 420 335 398 370 360 
+         L 320 315 
+         C 298 340 265 355 230 355 
+         C 160 355 105 300 105 230 
+         C 105 160 160 105 230 105 
+         C 275 105 315 128 338 162 
+         L 395 125 
+         C 358 72 298 40 230 40 Z" 
+      fill="#ffffff" 
+    />
+
+    <!-- The 'i' Dot / Head -->
+    <circle cx="310" cy="140" r="26" fill="url(#iGrad)" />
+
+    <!-- The 'i' Stem with Dynamic Upward Arrow Notch -->
+    <path 
+      d="M 270 205 
+         L 325 165 
+         L 325 355 
+         L 270 355 Z" 
+      fill="url(#iGrad)" 
+    />
+  </g>
+</svg>

@@ -1,0 +1,8 @@
+.next/
+.careeris/
+node_modules/
+.env.local
+.env
+*.zip
+*.pdf
+tsconfig.tsbuildinfo

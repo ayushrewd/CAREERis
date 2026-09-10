@@ -1,0 +1,1295 @@
+// ==============================================================================
+// CAREERIS DATABASE ARCHITECTURE
+// India Career, Skill & Labour-Market Intelligence Platform
+// PostgreSQL Schema with pgvector capabilities
+// ==============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = []
+}
+
+// ------------------------------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------------------------------
+
+enum UserRoleType {
+  CANDIDATE
+  EMPLOYER
+  TRAINING_PROVIDER
+  GOVERNMENT_ADMIN
+  DISTRICT_ADMIN
+  INDUSTRY_COUNCIL
+  PLATFORM_ADMIN
+}
+
+enum EntityStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+  SUSPENDED
+}
+
+enum ProficiencyLevel {
+  FOUNDATIONAL
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+  MASTER
+}
+
+enum SkillRelationshipType {
+  PREREQUISITE
+  RELATED
+  COMPLEMENTARY
+  SUBSKILL
+  SUPER_SKILL
+  ALTERNATIVE
+  CO_OCCURS_WITH
+  SPECIALIZATION_OF
+  SYNONYMOUS_WITH
+  COMMONLY_PAIRED_WITH
+  REPLACES
+}
+
+enum SkillType {
+  TECHNICAL
+  DIGITAL
+  SOFT
+  DOMAIN
+  TOOLS
+  LANGUAGE
+  GREEN
+  EMERGING
+  TRANSVERSAL
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  APPRENTICESHIP
+  INTERNSHIP
+  CONTRACT
+  REMOTE
+  HYBRID
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SCREENING
+  ASSESSMENT
+  INTERVIEW_SCHEDULED
+  OFFER_EXTENDED
+  PLACED
+  REJECTED
+  WITHDRAWN
+}
+
+enum EvidenceVerificationStatus {
+  UNVERIFIED
+  SELF_ATTESTED
+  ASSESSMENT_VERIFIED
+  INSTITUTE_VERIFIED
+  EMPLOYER_VERIFIED
+  AI_PROCTORED_VERIFIED
+  THIRD_PARTY_CREDENTIALED
+}
+
+enum DataSourceType {
+  JOB_POSTINGS
+  EMPLOYER_SURVEYS
+  INDUSTRY_CONSULTATION
+  TRAINING_DATA
+  PLACEMENT_DATA
+  GOVERNMENT_DATA
+  SECTOR_DATA
+  TECHNOLOGY_TRENDS
+  USER_GENERATED
+  MANUAL_ADMIN
+  IMPORTED_DATA
+}
+
+enum NotificationType {
+  JOB_MATCH
+  APPLICATION_UPDATE
+  ASSESSMENT
+  MESSAGE
+  INTERVIEW
+  SKILL_VERIFICATION
+  LEARNING
+  COURSE
+  SYSTEM
+  GOVERNMENT_ALERT
+  DATA_ALERT
+}
+
+// ------------------------------------------------------------------------------
+// 1. IDENTITY & RBAC
+// ------------------------------------------------------------------------------
+
+model User {
+  id              String       @id @default(uuid())
+  email           String       @unique
+  passwordHash    String?
+  phone           String?      @unique
+  fullName        String
+  avatarUrl       String?
+  roleType        UserRoleType @default(CANDIDATE)
+  isActive        Boolean      @default(true)
+  isEmailVerified Boolean      @default(false)
+  isPhoneVerified Boolean      @default(false)
+  lastLoginAt     DateTime?
+  preferredLocale String       @default("en")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  candidateProfile         CandidateProfile?
+  employerAccount          EmployerAccountProfile?
+  trainingProviderAccount  TrainingProviderAccountProfile?
+  governmentPlannerProfile GovernmentPlannerProfile?
+  companyMembers           CompanyMember[]
+  trainerProfile           Trainer?
+  sessions                 Session[]
+  auditLogs                AuditLog[]
+  notifications            Notification[]
+  sentMessages             Message[]                       @relation("SentMessages")
+  posts                    SocialPost[]
+  postComments             SocialComment[]
+  postReactions            SocialReaction[]
+  sentConnections          Connection[]                    @relation("ConnectionRequester")
+  receivedConnections      Connection[]                    @relation("ConnectionRecipient")
+  conversationMemberships  ConversationParticipant[]
+  userRoles                UserRole[]
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isSystem    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles   UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  action      String // e.g. "jobs:create", "district:read"
+  subject     String // e.g. "Job", "DistrictPlan"
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String // e.g., "ROLE_CHANGE", "JOB_CREATE", "DISTRICT_PLAN_APPROVE"
+  entity    String // e.g., "Job", "User", "DistrictPlan"
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ipAddress String?
+  userAgent String?
+  requestId String?
+  createdAt DateTime @default(now())
+}
+
+// ------------------------------------------------------------------------------
+// 2. GEOGRAPHY ARCHITECTURE (Pan-India Generic Hierarchy)
+// ------------------------------------------------------------------------------
+
+model Country {
+  id        String   @id @default(uuid())
+  code      String   @unique // "IN"
+  name      String // "India"
+  iso3      String   @default("IND")
+  createdAt DateTime @default(now())
+  states    State[]
+}
+
+model State {
+  id          String   @id @default(uuid())
+  countryId   String
+  code        String   @unique // e.g. "MH", "KA", "TN", "DL"
+  name        String // "Maharashtra", "Karnataka", "Tamil Nadu"
+  isUT        Boolean  @default(false)
+  isPilotArea Boolean  @default(false) // true for Maharashtra SIH pilot context
+  capital     String?
+  createdAt   DateTime @default(now())
+
+  country   Country    @relation(fields: [countryId], references: [id])
+  regions   Region[]
+  districts District[]
+}
+
+model Region {
+  id        String     @id @default(uuid())
+  stateId   String
+  code      String
+  name      String // e.g. "Pune Division", "Konkan Division", "Bengaluru Division"
+  state     State      @relation(fields: [stateId], references: [id])
+  districts District[]
+}
+
+model District {
+  id           String   @id @default(uuid())
+  stateId      String
+  regionId     String?
+  code         String   @unique // e.g. "MH-PUN", "KA-BLR"
+  name         String // "Pune", "Bengaluru Urban", "Chennai"
+  headquarters String?
+  createdAt    DateTime @default(now())
+
+  state              State               @relation(fields: [stateId], references: [id])
+  region             Region?             @relation(fields: [regionId], references: [id])
+  cities             City[]
+  industrialClusters IndustrialCluster[]
+  districtPlans      DistrictPlan[]
+  jobLocations       JobLocation[]
+}
+
+model City {
+  id         String   @id @default(uuid())
+  districtId String
+  name       String // "Pune", "Pimpri-Chinchwad", "Whitefield"
+  tier       Int      @default(2) // Tier 1, 2, 3
+  postalCode String?
+  district   District @relation(fields: [districtId], references: [id])
+}
+
+model IndustrialCluster {
+  id          String   @id @default(uuid())
+  districtId  String
+  code        String   @unique
+  name        String // "Chakan Automotive & EV Hub", "Electronic City", "Sriperumbudur Auto & Electronics"
+  sectorFocus String[] // ["Automotive", "Electronics", "Advanced Manufacturing"]
+  activeUnits Int      @default(0)
+  district    District @relation(fields: [districtId], references: [id])
+}
+
+// ------------------------------------------------------------------------------
+// 3. SECTORS & OCCUPATIONS
+// ------------------------------------------------------------------------------
+
+model Sector {
+  id          String       @id @default(uuid())
+  code        String       @unique // "AUTO", "IT_ITES", "HEALTHCARE", "ELECTRONICS"
+  name        String // "Automotive & EV", "IT & Artificial Intelligence"
+  description String?
+  iconUrl     String?
+  industries  Industry[]
+  occupations Occupation[]
+}
+
+model Industry {
+  id        String    @id @default(uuid())
+  sectorId  String
+  code      String    @unique
+  name      String
+  sector    Sector    @relation(fields: [sectorId], references: [id])
+  companies Company[]
+}
+
+model Occupation {
+  id          String    @id @default(uuid())
+  sectorId    String
+  ncoCode     String? // National Classification of Occupations
+  title       String // "Robotics & Automation Technologist"
+  description String?
+  sector      Sector    @relation(fields: [sectorId], references: [id])
+  jobRoles    JobRole[]
+}
+
+model JobRole {
+  id           String      @id @default(uuid())
+  occupationId String
+  code         String      @unique
+  title        String // "Battery Management Systems (BMS) Engineer"
+  description  String?
+  qpCode       String? // Qualification Pack code if mapped
+  nsqfLevel    Int? // NSQF Level 1 - 10
+  occupation   Occupation  @relation(fields: [occupationId], references: [id])
+  roleSkills   RoleSkill[]
+  jobs         Job[]
+}
+
+// ------------------------------------------------------------------------------
+// 4. SKILLS TAXONOMY & GRAPH
+// ------------------------------------------------------------------------------
+
+model SkillCategory {
+  id     String  @id @default(uuid())
+  name   String  @unique // "Technical Core", "Tool/Framework", "Soft Skill", "Domain Expertise"
+  code   String  @unique
+  skills Skill[]
+}
+
+model Skill {
+  id             String       @id @default(uuid())
+  categoryId     String
+  code           String       @unique // "SKILL-BMS-01", "SKILL-PY-01"
+  name           String // "Battery Management Systems (BMS)"
+  canonicalName  String       @default("")
+  normalizedName String       @default("")
+  description    String?
+  subcategory    String?
+  skillType      SkillType    @default(TECHNICAL)
+  status         EntityStatus @default(ACTIVE)
+  version        Int          @default(1)
+  isEmerging     Boolean      @default(false)
+  isGreenSkill   Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  category          SkillCategory            @relation(fields: [categoryId], references: [id])
+  aliases           SkillAlias[]
+  outgoingRelations SkillRelationship[]      @relation("SourceSkill")
+  incomingRelations SkillRelationship[]      @relation("TargetSkill")
+  roleSkills        RoleSkill[]
+  courseSkills      CourseSkill[]
+  candidateSkills   CandidateSkill[]
+  declaredSkills    CandidateDeclaredSkill[]
+  jobSkills         JobSkill[]
+  assessmentSkills  AssessmentSkill[]
+  projectSkills     ProjectSkill[]
+  demandSignals     DemandSignal[]
+  supplySignals     SupplySignal[]
+  skillGaps         SkillGap[]
+  curriculumModules CurriculumModuleSkill[]
+  trainerSkills     TrainerSkill[]
+  employerFeedback  EmployerFeedback[]
+  embedding         SkillEmbedding?
+
+  @@index([normalizedName])
+  @@index([skillType])
+  @@index([status])
+}
+
+model SkillAlias {
+  id              String   @id @default(uuid())
+  skillId         String
+  alias           String // e.g. "BMS", "Battery Pack Management", "Python 3"
+  normalizedAlias String   @default("")
+  source          String   @default("MANUAL")
+  confidence      Float    @default(1.0)
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  skill           Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([normalizedAlias])
+}
+
+model SkillRelationship {
+  id            String                @id @default(uuid())
+  sourceSkillId String
+  targetSkillId String
+  relationType  SkillRelationshipType
+  weight        Float                 @default(1.0)
+  confidence    Float                 @default(1.0)
+  source        String                @default("SYSTEM")
+  createdAt     DateTime              @default(now())
+  sourceSkill   Skill                 @relation("SourceSkill", fields: [sourceSkillId], references: [id], onDelete: Cascade)
+  targetSkill   Skill                 @relation("TargetSkill", fields: [targetSkillId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceSkillId, targetSkillId, relationType])
+}
+
+model UnresolvedSkill {
+  id              String   @id @default(uuid())
+  rawText         String
+  normalizedText  String
+  context         String?
+  sourceEntity    String // "JOB_POSTING", "CANDIDATE_RESUME", "COURSE_SYLLABUS", "ASSESSMENT"
+  sourceEntityId  String?
+  confidence      Float    @default(0.0)
+  status          String   @default("UNRESOLVED") // "UNRESOLVED", "REVIEW_REQUIRED", "RESOLVED", "REJECTED"
+  resolvedSkillId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([normalizedText])
+  @@index([status])
+}
+
+model SkillEmbedding {
+  id           String   @id @default(uuid())
+  skillId      String   @unique
+  embedding    Float[]
+  model        String   @default("text-embedding-3-small")
+  modelVersion String   @default("v1")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  skill        Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+}
+
+model RoleSkill {
+  id             String           @id @default(uuid())
+  jobRoleId      String
+  skillId        String
+  minProficiency ProficiencyLevel @default(INTERMEDIATE)
+  isMandatory    Boolean          @default(true)
+  jobRole        JobRole          @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  skill          Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([jobRoleId, skillId])
+}
+
+// ------------------------------------------------------------------------------
+// 5. CANDIDATE PROFILE & EVIDENCE
+// ------------------------------------------------------------------------------
+
+model CandidateProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  headline          String?
+  summary           String?
+  currentDistrict   String?
+  location          String?
+  educationSummary  String?
+  qualification     String?
+  experienceSummary String?
+  targetRole        String?
+  targetJobRoleId   String?
+  preferredStates   String[]
+  readinessScore    Float?   @default(0.0) // 0 - 100 explainable readiness index
+  resumeUrl         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user                  User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  educations            Education[]
+  experiences           Experience[]
+  candidateSkills       CandidateSkill[]
+  projects              Project[]
+  applications          Application[]
+  assessmentAttempts    AssessmentAttempt[]
+  placements            Placement[]
+  enrollments           CourseEnrollment[]
+  declaredSkills        CandidateDeclaredSkill[]
+  diagnosticAssessments DiagnosticAssessment[]
+  employerFeedback      EmployerFeedback[]
+}
+
+model CandidateDeclaredSkill {
+  id                  String                 @id @default(uuid())
+  candidateProfileId  String
+  skillId             String?
+  name                String
+  normalizedName      String
+  verificationStatus  String                 @default("UNVERIFIED")
+  claimedProficiency  ProficiencyLevel       @default(FOUNDATIONAL)
+  assessedScore       Float?
+  assessmentPassed    Boolean?
+  passThreshold       Float?
+  assessedAt          DateTime?
+  trainingStatus      String                 @default("NOT_STARTED")
+  trainingCompletedAt DateTime?
+  createdAt           DateTime               @default(now())
+  candidateProfile    CandidateProfile       @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  skill               Skill?                 @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  projectEvidence     SkillProjectEvidence[]
+
+  @@unique([candidateProfileId, normalizedName])
+  @@index([normalizedName])
+  @@index([skillId])
+}
+
+model DiagnosticAssessment {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  targetRoleTitle    String
+  questions          Json
+  answers            Json?
+  results            Json?
+  status             String           @default("IN_PROGRESS")
+  createdAt          DateTime         @default(now())
+  completedAt        DateTime?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId, createdAt])
+}
+
+model EmployerAccountProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  companyName  String
+  designation  String?
+  industry     String?
+  cinNumber    String?
+  headquarters String?
+  website      String?
+  canPostJobs  Boolean  @default(true)
+  companyId    String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+}
+
+model TrainingProviderAccountProfile {
+  id                 String            @id @default(uuid())
+  userId             String            @unique
+  organizationName   String
+  registrationNo     String?
+  providerType       String?
+  headquarters       String?
+  trainingProviderId String?           @unique
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainingProvider   TrainingProvider? @relation(fields: [trainingProviderId], references: [id], onDelete: SetNull)
+}
+
+model GovernmentPlannerProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  departmentName String
+  designation    String?
+  district       String?
+  officialId     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Education {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  institutionName    String
+  degree             String
+  fieldOfStudy       String
+  startDate          DateTime
+  endDate            DateTime?
+  grade              String?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+}
+
+model Experience {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  companyName        String
+  jobTitle           String
+  location           String?
+  startDate          DateTime
+  endDate            DateTime?
+  isCurrent          Boolean          @default(false)
+  description        String?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+}
+
+model CandidateSkill {
+  id                 String                     @id @default(uuid())
+  candidateProfileId String
+  skillId            String
+  claimedProficiency ProficiencyLevel           @default(FOUNDATIONAL)
+  assessedScore      Float? // 0 - 100 from proctored assessments
+  verificationStatus EvidenceVerificationStatus @default(UNVERIFIED)
+  verifiedAt         DateTime?
+  candidateProfile   CandidateProfile           @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  skill              Skill                      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  evidences          SkillEvidence[]
+
+  @@unique([candidateProfileId, skillId])
+}
+
+model SkillEvidence {
+  id               String                     @id @default(uuid())
+  candidateSkillId String
+  evidenceType     String // "PROJECT_CODE", "CERTIFICATE", "ASSESSMENT_REPORT", "EMPLOYER_REVIEW"
+  title            String
+  description      String?
+  sourceUrl        String?
+  verificationCode String?
+  status           EvidenceVerificationStatus @default(SELF_ATTESTED)
+  candidateSkill   CandidateSkill             @relation(fields: [candidateSkillId], references: [id], onDelete: Cascade)
+  createdAt        DateTime                   @default(now())
+}
+
+model Project {
+  id                    String                 @id @default(uuid())
+  candidateProfileId    String
+  title                 String
+  description           String
+  demoUrl               String?
+  repositoryUrl         String?
+  technologies          String[]
+  evidenceStatus        String                 @default("SUBMITTED")
+  verificationStatus    String                 @default("PENDING")
+  verificationMethod    String?
+  verificationReason    String?
+  verifiedAt            DateTime?
+  repositoryReachable   Boolean?
+  repositoryCheckedAt   DateTime?
+  repositoryOwner       String?
+  repositoryName        String?
+  repositoryDescription String?
+  repositoryLanguages   Json?
+  repositoryPushedAt    DateTime?
+  readmePresent         Boolean?
+  ownershipStatus       String                 @default("UNAVAILABLE")
+  repositoryMetadata    Json?
+  completedDate         DateTime?
+  candidateProfile      CandidateProfile       @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  projectSkills         ProjectSkill[]
+  declaredSkillEvidence SkillProjectEvidence[]
+}
+
+model SkillProjectEvidence {
+  id                       String                 @id @default(uuid())
+  candidateDeclaredSkillId String
+  projectId                String
+  status                   String                 @default("SUBMITTED")
+  createdAt                DateTime               @default(now())
+  candidateDeclaredSkill   CandidateDeclaredSkill @relation(fields: [candidateDeclaredSkillId], references: [id], onDelete: Cascade)
+  project                  Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateDeclaredSkillId, projectId])
+}
+
+model ProjectSkill {
+  id        String  @id @default(uuid())
+  projectId String
+  skillId   String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, skillId])
+}
+
+// ------------------------------------------------------------------------------
+// 6. EMPLOYER & JOBS
+// ------------------------------------------------------------------------------
+
+model Company {
+  id           String   @id @default(uuid())
+  industryId   String?
+  name         String
+  legalName    String?
+  cinNumber    String? // Corporate Identification Number
+  website      String?
+  logoUrl      String?
+  description  String?
+  headquarters String?
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  industry        Industry?               @relation(fields: [industryId], references: [id])
+  members         CompanyMember[]
+  jobs            Job[]
+  employerAccount EmployerAccountProfile?
+  placements      Placement[]
+  feedback        EmployerFeedback[]
+}
+
+model CompanyMember {
+  id        String  @id @default(uuid())
+  companyId String
+  userId    String
+  title     String? // "Talent Acquisition Lead"
+  isPrimary Boolean @default(false)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+}
+
+model Job {
+  id            String       @id @default(uuid())
+  companyId     String
+  jobRoleId     String?
+  title         String
+  description   String
+  qualification String?
+  locationText  String?
+  sectorText    String?
+  jobType       JobType      @default(FULL_TIME)
+  minExperience Int          @default(0) // in years
+  maxExperience Int?
+  minSalaryINR  Int?
+  maxSalaryINR  Int?
+  openPositions Int          @default(1)
+  status        EntityStatus @default(ACTIVE)
+  expiresAt     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  company              Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  jobRole              JobRole?           @relation(fields: [jobRoleId], references: [id])
+  jobSkills            JobSkill[]
+  locations            JobLocation[]
+  applications         Application[]
+  declaredRequirements JobRequirement[]
+  placements           Placement[]
+  feedback             EmployerFeedback[]
+}
+
+model JobRequirement {
+  id             String           @id @default(uuid())
+  jobId          String
+  name           String
+  normalizedName String
+  proficiency    ProficiencyLevel @default(INTERMEDIATE)
+  isMandatory    Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  job            Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, normalizedName])
+  @@index([normalizedName])
+}
+
+model JobLocation {
+  id         String   @id @default(uuid())
+  jobId      String
+  districtId String
+  isPrimary  Boolean  @default(true)
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  district   District @relation(fields: [districtId], references: [id])
+
+  @@unique([jobId, districtId])
+}
+
+model JobSkill {
+  id            String           @id @default(uuid())
+  jobId         String
+  skillId       String
+  requiredLevel ProficiencyLevel @default(INTERMEDIATE)
+  isMandatory   Boolean          @default(true)
+  weight        Float            @default(1.0)
+  job           Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill         Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, skillId])
+}
+
+model Application {
+  id                 String            @id @default(uuid())
+  jobId              String
+  candidateProfileId String
+  status             ApplicationStatus @default(SUBMITTED)
+  matchScore         Float? // 0 - 100 explainable matching score
+  coverNote          String?
+  workflowStatus     String            @default("APPLIED")
+  selectedAt         DateTime?
+  hiredAt            DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  job              Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateProfile CandidateProfile     @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  history          ApplicationHistory[]
+  interviews       Interview[]
+  offer            Offer?
+  placement        Placement?
+  employerFeedback EmployerFeedback[]
+
+  @@unique([jobId, candidateProfileId])
+}
+
+model ApplicationHistory {
+  id            String      @id @default(uuid())
+  applicationId String
+  actorUserId   String?
+  fromStatus    String?
+  toStatus      String
+  notes         String?
+  createdAt     DateTime    @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+}
+
+model Interview {
+  id            String      @id @default(uuid())
+  applicationId String
+  scheduledAt   DateTime
+  mode          String
+  locationOrUrl String?
+  status        String      @default("SCHEDULED")
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, scheduledAt])
+}
+
+model Offer {
+  id            String      @id @default(uuid())
+  applicationId String      @unique
+  status        String      @default("EXTENDED")
+  offeredAt     DateTime    @default(now())
+  acceptedAt    DateTime?
+  salaryINR     Int?
+  joiningDate   DateTime?
+  notes         String?
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------------------------
+// 7. TRAINING PROVIDERS, COURSES, EQUIPMENT & TRAINERS
+// ------------------------------------------------------------------------------
+
+model TrainingProvider {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  name           String
+  registrationNo String?
+  providerType   String // "ITI", "POLYTECHNIC", "NSTI", "PRIVATE_VOCATIONAL", "UNIVERSITY"
+  headquarters   String?
+  isAccredited   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  courses    Course[]
+  trainers   Trainer[]
+  equipments Equipment[]
+  account    TrainingProviderAccountProfile?
+}
+
+model Course {
+  id                 String           @id @default(uuid())
+  trainingProviderId String
+  code               String           @unique
+  title              String
+  description        String?
+  durationHours      Int
+  level              ProficiencyLevel @default(FOUNDATIONAL)
+  deliveryMode       String?
+  locationText       String?
+  eligibility        String?
+  sourceUrl          String?
+  enrollmentUrl      String?
+  evidenceNote       String?
+  capacity           Int              @default(30)
+  status             EntityStatus     @default(ACTIVE)
+  healthScore        Float?           @default(85.0) // 0-100 curriculum & placement health
+  createdAt          DateTime         @default(now())
+
+  trainingProvider TrainingProvider   @relation(fields: [trainingProviderId], references: [id], onDelete: Cascade)
+  courseSkills     CourseSkill[]
+  courseEquipments CourseEquipment[]
+  curriculums      Curriculum[]
+  enrollments      CourseEnrollment[]
+}
+
+model CourseEnrollment {
+  id                    String           @id @default(uuid())
+  candidateProfileId    String
+  courseId              String
+  status                String           @default("ENROLLED")
+  enrolledAt            DateTime         @default(now())
+  completedAt           DateTime?
+  completionEvidenceUrl String?
+  providerConfirmedAt   DateTime?
+  candidateProfile      CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  course                Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateProfileId, courseId])
+}
+
+model CourseSkill {
+  id               String           @id @default(uuid())
+  courseId         String
+  skillId          String
+  targetLevel      ProficiencyLevel @default(INTERMEDIATE)
+  curriculumWeight Float            @default(1.0)
+  course           Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  skill            Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, skillId])
+}
+
+model Curriculum {
+  id          String             @id @default(uuid())
+  courseId    String
+  version     String             @default("2026.1")
+  lastAudited DateTime           @default(now())
+  isAligned   Boolean?
+  gapScore    Float?
+  status      String             @default("DRAFT")
+  notes       String?
+  course      Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  modules     CurriculumModule[]
+}
+
+model CurriculumModule {
+  id           String                  @id @default(uuid())
+  curriculumId String
+  title        String
+  description  String?
+  sequence     Int
+  hours        Int?
+  curriculum   Curriculum              @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  skills       CurriculumModuleSkill[]
+
+  @@unique([curriculumId, sequence])
+}
+
+model CurriculumModuleSkill {
+  id                 String           @id @default(uuid())
+  curriculumModuleId String
+  skillId            String
+  targetLevel        ProficiencyLevel @default(INTERMEDIATE)
+  curriculumModule   CurriculumModule @relation(fields: [curriculumModuleId], references: [id], onDelete: Cascade)
+  skill              Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([curriculumModuleId, skillId])
+}
+
+model Trainer {
+  id                 String           @id @default(uuid())
+  userId             String?          @unique
+  trainingProviderId String
+  fullName           String
+  qualification      String
+  totCertified       Boolean          @default(false) // Training of Trainers (ToT) certified
+  yearsExperience    Int              @default(3)
+  user               User?            @relation(fields: [userId], references: [id])
+  trainingProvider   TrainingProvider @relation(fields: [trainingProviderId], references: [id], onDelete: Cascade)
+  skills             TrainerSkill[]
+}
+
+model TrainerSkill {
+  id          String           @id @default(uuid())
+  trainerId   String
+  skillId     String
+  proficiency ProficiencyLevel @default(INTERMEDIATE)
+  verifiedAt  DateTime?
+  trainer     Trainer          @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  skill       Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([trainerId, skillId])
+}
+
+model Equipment {
+  id                 String            @id @default(uuid())
+  trainingProviderId String
+  serialNumber       String?
+  name               String // "PLC Siemens S7-1200 Training Rig", "EV Battery Diagnostic Workbench"
+  modelYear          Int               @default(2024)
+  workingCondition   Boolean           @default(true)
+  trainingProvider   TrainingProvider  @relation(fields: [trainingProviderId], references: [id], onDelete: Cascade)
+  courseEquipments   CourseEquipment[]
+}
+
+model CourseEquipment {
+  id          String    @id @default(uuid())
+  courseId    String
+  equipmentId String
+  unitsCount  Int       @default(1)
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, equipmentId])
+}
+
+// ------------------------------------------------------------------------------
+// 8. ASSESSMENTS
+// ------------------------------------------------------------------------------
+
+model Assessment {
+  id               String              @id @default(uuid())
+  title            String
+  code             String              @unique
+  description      String?
+  durationMinutes  Int                 @default(45)
+  totalQuestions   Int                 @default(30)
+  passingScore     Float               @default(70.0)
+  assessmentSkills AssessmentSkill[]
+  attempts         AssessmentAttempt[]
+}
+
+model AssessmentSkill {
+  id           String     @id @default(uuid())
+  assessmentId String
+  skillId      String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, skillId])
+}
+
+model AssessmentAttempt {
+  id                 String           @id @default(uuid())
+  assessmentId       String
+  candidateProfileId String
+  score              Float
+  isPassed           Boolean
+  completedAt        DateTime         @default(now())
+  assessment         Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------------------------
+// 9. DATA SOURCES & INTELLIGENCE SIGNALS
+// ------------------------------------------------------------------------------
+
+model DataSource {
+  id             String         @id @default(uuid())
+  name           String // "Maharashtra State Employment Exchange", "NASSCOM Tech Pulse", "SIH Employer Survey"
+  sourceType     DataSourceType
+  collectionDate DateTime       @default(now())
+  timePeriod     String // "Q1 2026", "2025-26"
+  geographyScope String // "ALL_INDIA", "MAHARASHTRA", "PUNE"
+  confidence     Float          @default(85.0) // 0 - 100 confidence score
+  methodology    String? // "Direct API ingestion of employer requisition signals"
+  version        String         @default("v1.0")
+  demandSignals  DemandSignal[]
+  supplySignals  SupplySignal[]
+}
+
+model DemandSignal {
+  id             String     @id @default(uuid())
+  dataSourceId   String
+  skillId        String
+  districtId     String?
+  openPositions  Int
+  growthRateYoY  Float // e.g. +34.5%
+  recordedDate   DateTime   @default(now())
+  sourceEntity   String?
+  sourceEntityId String?
+  provenance     Json?
+  dataSource     DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  skill          Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+}
+
+model SupplySignal {
+  id                String     @id @default(uuid())
+  dataSourceId      String
+  skillId           String
+  districtId        String?
+  certifiedTrainees Int
+  recordedDate      DateTime   @default(now())
+  sourceEntity      String?
+  sourceEntityId    String?
+  provenance        Json?
+  dataSource        DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  skill             Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+}
+
+model SkillGap {
+  id             String  @id @default(uuid())
+  skillId        String
+  districtId     String?
+  demandedCount  Int
+  availableCount Int
+  netShortage    Int
+  gapSeverity    String // "CRITICAL", "MODERATE", "BALANCED", "SURPLUS"
+  skill          Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------------------------
+// 10. DISTRICT PLANNING & OUTCOMES
+// ------------------------------------------------------------------------------
+
+model DistrictPlan {
+  id                 String    @id @default(uuid())
+  districtId         String?
+  districtText       String    @default("")
+  fiscalYear         String // "2026-27"
+  title              String
+  targetTrainees     Int?
+  allocatedBudgetINR BigInt?
+  status             String    @default("DRAFT")
+  period             String?
+  recommendations    Json?
+  evidence           Json?
+  createdByUserId    String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  district           District? @relation(fields: [districtId], references: [id], onDelete: SetNull)
+}
+
+model Placement {
+  id                 String             @id @default(uuid())
+  applicationId      String?            @unique
+  candidateProfileId String
+  companyId          String?
+  jobId              String?
+  companyName        String?
+  jobTitle           String?
+  salaryINR          Int?
+  hiredAt            DateTime?
+  joinedAt           DateTime?
+  outcome            String             @default("HIRED")
+  placedAt           DateTime           @default(now())
+  application        Application?       @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  candidateProfile   CandidateProfile   @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  company            Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  job                Job?               @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  feedback           EmployerFeedback[]
+}
+
+model EmployerFeedback {
+  id                  String           @id @default(uuid())
+  placementId         String
+  companyId           String
+  candidateProfileId  String
+  applicationId       String
+  jobId               String
+  skillId             String
+  observedProficiency ProficiencyLevel
+  skillGap            Boolean          @default(false)
+  jobReadiness        String?
+  trainingRelevance   String?
+  outcome             String?
+  notes               String?
+  observedAt          DateTime         @default(now())
+  placement           Placement        @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidateProfile    CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  application         Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  job                 Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill               Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([placementId, skillId])
+  @@index([companyId, observedAt])
+}
+
+// ------------------------------------------------------------------------------
+// 11. NOTIFICATIONS & COMMUNICATION
+// ------------------------------------------------------------------------------
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  actionUrl String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id           String                    @id @default(uuid())
+  createdAt    DateTime                  @default(now())
+  messages     Message[]
+  participants ConversationParticipant[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Connection {
+  id          String   @id @default(uuid())
+  requesterId String
+  recipientId String
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  requester   User     @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("ConnectionRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, recipientId])
+}
+
+model SocialPost {
+  id        String           @id @default(uuid())
+  authorId  String
+  content   String
+  mediaUrl  String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  SocialComment[]
+  reactions SocialReaction[]
+  shares    SocialShare[]
+}
+
+model SocialComment {
+  id        String     @id @default(uuid())
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime   @default(now())
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model SocialReaction {
+  id        String     @id @default(uuid())
+  postId    String
+  userId    String
+  type      String     @default("LIKE")
+  createdAt DateTime   @default(now())
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model SocialShare {
+  id        String     @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime   @default(now())
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}

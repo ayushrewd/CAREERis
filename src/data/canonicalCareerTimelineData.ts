@@ -1,0 +1,51 @@
+import { CareerTimelineEvent } from "@/types/careerJourney";
+
+export const CANONICAL_TIMELINE_EVENTS: CareerTimelineEvent[] = [
+  {
+    id: "evt-01",
+    candidateId: "cand-rohit-01",
+    eventType: "EDUCATION_ENROLLED",
+    title: "Enrolled in Government ITI Aundh (Mechatronics)",
+    description: "Commenced 2-year National Trade Certificate (NTC) in Mechatronics & EV Automation CoE.",
+    eventDate: "2023-08-01",
+    verifiedBy: "MSDE NCVT Portal",
+  },
+  {
+    id: "evt-02",
+    candidateId: "cand-rohit-01",
+    eventType: "COURSE_COMPLETED",
+    title: "Completed Advanced EV Battery Management Program",
+    description: "320 hours of hands-on lithium-ion cell balancing and CAN telemetry calibration.",
+    entityId: "course-bms-01",
+    eventDate: "2025-05-20",
+    verifiedBy: "Government ITI Aundh Examination Cell",
+  },
+  {
+    id: "evt-03",
+    candidateId: "cand-rohit-01",
+    eventType: "ASSESSMENT_PASSED",
+    title: "Proctored ASDC Skill Diagnostic Passed (Score: 92/100)",
+    description: "Verified master proficiency in BMS Fault Diagnosis and Thermal Safety Runaway Protection.",
+    eventDate: "2025-12-15",
+    badgeUrl: "/badges/asdc-bms-master.png",
+    verifiedBy: "Automotive Skills Development Council",
+  },
+  {
+    id: "evt-04",
+    candidateId: "cand-rohit-01",
+    eventType: "SKILL_VERIFIED",
+    title: "Skill Verified: Battery Management Systems (BMS)",
+    description: "Added with ADVANCED verified badge into CareerIS Skill Passport.",
+    eventDate: "2026-02-15",
+    verifiedBy: "CareerIS National Verification Engine",
+  },
+  {
+    id: "evt-05",
+    candidateId: "cand-rohit-01",
+    eventType: "JOB_APPLIED",
+    title: "Applied to Tata Motors EV Division",
+    description: "Role: Battery Management System (BMS) Calibration Specialist (Match Score: 94%).",
+    entityId: "job-01",
+    eventDate: "2026-02-20",
+  },
+];

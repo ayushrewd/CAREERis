@@ -1,0 +1,24 @@
+"use client";
+
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Github, Plus, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+type Project = { id: string; title: string; description: string; repositoryUrl: string; technologies: string[]; skills: string[]; repositoryReachable: boolean | null; evidenceStatus: string; verificationStatus: string; verificationReason?: string };
+
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", repositoryUrl: "", technologies: "" });
+  const load = useCallback(() => { setLoading(true); fetch("/api/candidate/projects", { cache: "no-store" }).then(async (r) => { const b = await r.json(); if (!r.ok) throw new Error(b.error); setProjects(b.projects || []); }).catch((e) => setError(e.message)).finally(() => setLoading(false)); }, []);
+  useEffect(() => { load(); }, [load]);
+  async function submit(event: FormEvent) { event.preventDefault(); setError(""); const response = await fetch("/api/candidate/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, technologies: form.technologies.split(",").map((item) => item.trim()).filter(Boolean) }) }); const body = await response.json(); if (!response.ok) { setError(body.error); return; } setForm({ title: "", description: "", repositoryUrl: "", technologies: "" }); setOpen(false); load(); }
+  return <main className="mx-auto max-w-5xl space-y-6 pb-16"><header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Project evidence</p><h1 className="mt-1 text-3xl font-extrabold">GitHub repositories</h1><p className="mt-2 text-sm text-muted-foreground">Repository accessibility is checked. Submission alone does not become employer verification.</p></div><Button onClick={() => setOpen(!open)}><Plus className="mr-2 h-4 w-4"/>Attach repository</Button></header>
+    {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-600">{error}</div>}
+    {open && <Card><CardHeader><CardTitle>Add project evidence</CardTitle></CardHeader><CardContent><form onSubmit={submit} className="grid gap-4"><label className="text-sm font-semibold">Project title<Input required value={form.title} onChange={(e) => setForm({...form,title:e.target.value})} className="mt-1"/></label><label className="text-sm font-semibold">Description<Textarea required rows={4} value={form.description} onChange={(e) => setForm({...form,description:e.target.value})} className="mt-1"/></label><label className="text-sm font-semibold">GitHub repository URL<Input required type="url" placeholder="https://github.com/username/repository" value={form.repositoryUrl} onChange={(e) => setForm({...form,repositoryUrl:e.target.value})} className="mt-1"/></label><label className="text-sm font-semibold">Technologies / declared skills (comma separated)<Input required placeholder="Python, BMS, CAN" value={form.technologies} onChange={(e) => setForm({...form,technologies:e.target.value})} className="mt-1"/></label><Button type="submit">Save evidence</Button></form></CardContent></Card>}
+    {loading ? <p className="flex items-center gap-2 text-sm text-muted-foreground"><RefreshCw className="h-4 w-4 animate-spin"/>Loading projects…</p> : projects.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No project evidence submitted.</CardContent></Card> : <div className="grid gap-4 md:grid-cols-2">{projects.map((project) => <Card key={project.id}><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><Github className="h-5 w-5 text-primary"/><Badge variant="outline">{project.repositoryReachable ? "Accessible" : "Access not confirmed"}</Badge></div><h2 className="mt-4 font-bold">{project.title}</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">{project.description}</p><div className="mt-3 flex flex-wrap gap-1">{project.technologies.map((tech) => <Badge key={tech} variant="secondary">{tech}</Badge>)}</div><a href={project.repositoryUrl} target="_blank" rel="noreferrer" className="mt-4 block break-all text-xs text-primary hover:underline">{project.repositoryUrl}</a><p className="mt-3 text-[11px] text-muted-foreground">Linked declared skills: {project.skills.length ? project.skills.join(", ") : "None matched exactly"}</p></CardContent></Card>)}</div>}
+  </main>;
+}

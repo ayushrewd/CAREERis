@@ -1,0 +1,162 @@
+import { CurriculumHealthDetail } from "@/types/decisionIntelligence";
+
+export const CANONICAL_CURRICULA: CurriculumHealthDetail[] = [
+  {
+    courseId: "course-bms-01",
+    courseTitle: "Advanced Certificate in EV Battery Management & Diagnostic Systems",
+    modules: [
+      {
+        id: "mod-bms-01",
+        title: "Lithium-Ion Cell Chemistry & Pack Assembly Architecture",
+        skillId: "skill-bms",
+        skillName: "Battery Management Systems (BMS)",
+        targetProficiency: "INTERMEDIATE",
+        theoryHours: 40,
+        practicalLabHours: 60,
+        status: "MET",
+      },
+      {
+        id: "mod-bms-02",
+        title: "BMS Hardware Calibration, Cell Balancing & Thermal Protection",
+        skillId: "skill-bms",
+        skillName: "Battery Management Systems (BMS)",
+        targetProficiency: "ADVANCED",
+        theoryHours: 50,
+        practicalLabHours: 90,
+        status: "MET",
+      },
+      {
+        id: "mod-bms-03",
+        title: "CAN 2.0B / CAN-FD In-Vehicle Network Telemetry",
+        skillId: "skill-can",
+        skillName: "CAN Bus Communication",
+        targetProficiency: "ADVANCED",
+        theoryHours: 30,
+        practicalLabHours: 50,
+        status: "MET",
+      },
+    ],
+    curriculumGapScore: 92,
+    freshnessStatus: "FRESH",
+    lastRevisedDate: "2025-08-15",
+    missingMarketSkills: [],
+    outdatedSkills: [],
+    emergingSkillsToIntegrate: [
+      {
+        skillId: "skill-ota",
+        skillName: "Automotive Over-The-Air (OTA) Flashing",
+        emergingScore: 84,
+      },
+      {
+        skillId: "skill-v2g",
+        skillName: "Vehicle-to-Grid (V2G) ISO 15118 Interoperability",
+        emergingScore: 82,
+      },
+    ],
+    recommendedAction: "Integrate optional 20-hour elective module on Automotive OTA Firmware Flashing in upcoming academic term.",
+    confidence: 0.96,
+  },
+  {
+    courseId: "course-plc-01",
+    courseTitle: "Industry 4.0 PLC, SCADA & Industrial IoT Technician",
+    modules: [
+      {
+        id: "mod-plc-01",
+        title: "Relay Logic Fundamentals & Ladder Logic Programming",
+        skillId: "skill-plc",
+        skillName: "Programmable Logic Controllers (PLC)",
+        targetProficiency: "INTERMEDIATE",
+        theoryHours: 40,
+        practicalLabHours: 60,
+        status: "MET",
+      },
+      {
+        id: "mod-plc-02",
+        title: "Siemens TIA Portal & Structured Text (ST) Programming",
+        skillId: "skill-plc",
+        skillName: "Programmable Logic Controllers (PLC)",
+        targetProficiency: "ADVANCED",
+        theoryHours: 40,
+        practicalLabHours: 80,
+        status: "MET",
+      },
+      {
+        id: "mod-plc-03",
+        title: "SCADA Screen Design & Alarm Telemetry Configuration",
+        skillId: "skill-scada",
+        skillName: "SCADA Systems",
+        targetProficiency: "ADVANCED",
+        theoryHours: 30,
+        practicalLabHours: 30,
+        status: "MET",
+      },
+    ],
+    curriculumGapScore: 86,
+    freshnessStatus: "CURRENT",
+    lastRevisedDate: "2024-11-10",
+    missingMarketSkills: [
+      {
+        skillId: "skill-ros",
+        skillName: "Industrial Robotics (ROS 2)",
+        marketDemand: 1680,
+      },
+    ],
+    outdatedSkills: [
+      {
+        skillId: "skill-legacy-relay",
+        skillName: "Discrete Electromagnetic Relay Panels",
+        replacementTech: "Micro-PLC Digital Relays",
+      },
+    ],
+    emergingSkillsToIntegrate: [
+      {
+        skillId: "skill-iiot-mqtt",
+        skillName: "Industrial IoT MQTT Edge Telemetry",
+        emergingScore: 78,
+      },
+    ],
+    recommendedAction: "Replace 15 hours of legacy discrete relay wiring with modern Edge IoT and MQTT industrial gateway telemetry.",
+    confidence: 0.94,
+  },
+  {
+    courseId: "course-legacy-draft-01",
+    courseTitle: "Certificate in Manual Mechanical Draughtsmanship",
+    modules: [
+      {
+        id: "mod-draft-01",
+        title: "T-Square & Drawing Board Geometric Construction",
+        skillId: "skill-manual-draft",
+        skillName: "Manual Drafting",
+        targetProficiency: "INTERMEDIATE",
+        theoryHours: 80,
+        practicalLabHours: 120,
+        status: "OUTDATED",
+      },
+    ],
+    curriculumGapScore: 32,
+    freshnessStatus: "OUTDATED",
+    lastRevisedDate: "2018-05-20",
+    missingMarketSkills: [
+      {
+        skillId: "skill-cad-solidworks",
+        skillName: "3D Parametric CAD & SolidWorks",
+        marketDemand: 4200,
+      },
+      {
+        skillId: "skill-cnc",
+        skillName: "CNC Multi-Axis Machining",
+        marketDemand: 3800,
+      },
+    ],
+    outdatedSkills: [
+      {
+        skillId: "skill-manual-draft",
+        skillName: "Manual Drawing Board Drafting",
+        replacementTech: "3D CAD & Digital Twin Simulation",
+      },
+    ],
+    emergingSkillsToIntegrate: [],
+    recommendedAction: "Urgent curriculum modernization: convert trade to 3D Parametric CAD, CNC CAM Toolpathing and Additive Manufacturing.",
+    confidence: 0.98,
+  },
+];
