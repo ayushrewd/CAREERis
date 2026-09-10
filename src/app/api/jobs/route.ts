@@ -78,12 +78,12 @@ export async function POST(request: NextRequest) {
         maxSalaryINR: body.maxSalaryINR === "" ? null : Number(body.maxSalaryINR) || null,
         openPositions: Math.max(1, Number(body.openPositions) || 1), status: "ACTIVE",
       } });
-      const source = await tx.dataSource.create({ data: { name: `CAREERIS company job ${created.id}`, sourceType: "JOB_POSTINGS", timePeriod: new Date().toISOString().slice(0, 10), geographyScope: body.location.trim(), confidence: 100, methodology: "Direct requirement submitted by a registered CAREERIS company account", version: "1" } });
+      const source = await tx.dataSource.create({ data: { name: `CAREERIS company job ${created.id}`, sourceType: "JOB_POSTINGS", timePeriod: new Date().toISOString().slice(0, 10), geographyScope: body.location.trim(), confidence: null, methodology: "Direct requirement submitted by a registered CAREERIS company account", version: "1" } });
       for (const requirement of requirements) {
         const skill = await resolveOrCreateSkill(requirement.name, tx);
         await tx.jobSkill.create({ data: { jobId: created.id, skillId: skill.id, requiredLevel: requirement.proficiency, isMandatory: requirement.isMandatory, weight: requirement.weight } });
         await tx.jobRequirement.create({ data: { jobId: created.id, name: skill.name, normalizedName: skill.normalizedName, proficiency: requirement.proficiency, isMandatory: requirement.isMandatory } });
-        await tx.demandSignal.create({ data: { dataSourceId: source.id, skillId: skill.id, openPositions: created.openPositions, growthRateYoY: 0, recordedDate: created.createdAt, sourceEntity: "JOB", sourceEntityId: created.id, provenance: { companyId: account.companyId, jobId: created.id } } });
+        await tx.demandSignal.create({ data: { dataSourceId: source.id, skillId: skill.id, openPositions: created.openPositions, growthRateYoY: null, recordedDate: created.createdAt, sourceEntity: "JOB", sourceEntityId: created.id, provenance: { companyId: account.companyId, jobId: created.id } } });
       }
       await tx.auditLog.create({ data: { userId: auth.userId, action: "JOB_CREATE", entity: "Job", entityId: created.id, newValue: { title: created.title, skillCount: requirements.length } } });
       return tx.job.findUniqueOrThrow({ where: { id: created.id }, include: { declaredRequirements: true, jobSkills: { include: { skill: true } }, company: true } });

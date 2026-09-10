@@ -5,8 +5,8 @@
   "description": "CareerIS - India Career, Skill & Labour-Market Intelligence Platform",
   "scripts": {
     "db:local": "node scripts/local-db.mjs",
-    "db:setup": "prisma db push",
-    "db:migrate": "prisma db push",
+    "db:setup": "prisma migrate deploy",
+    "db:migrate": "prisma migrate deploy",
     "dev:local": "node scripts/dev-local.mjs",
     "dev": "next dev",
     "build": "next build",

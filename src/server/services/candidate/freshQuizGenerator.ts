@@ -62,9 +62,10 @@ function normalize(value: string) {
 
 function seedsFor(skill: string): Seed[] | null {
   const key = normalize(skill);
-  const exact = BANK[key];
-  if (exact) return exact;
-  const matchedKey = Object.keys(BANK).find((candidate) => key.includes(candidate) || candidate.includes(key));
+  const matchedKey = Object.keys(BANK).find((candidate) => {
+    const normalizedCandidate = normalize(candidate);
+    return key === normalizedCandidate || key.includes(normalizedCandidate) || normalizedCandidate.includes(key);
+  });
   if (matchedKey) return BANK[matchedKey];
   return null;
 }

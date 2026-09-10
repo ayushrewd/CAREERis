@@ -1077,7 +1077,7 @@ model DataSource {
   collectionDate DateTime       @default(now())
   timePeriod     String // "Q1 2026", "2025-26"
   geographyScope String // "ALL_INDIA", "MAHARASHTRA", "PUNE"
-  confidence     Float          @default(85.0) // 0 - 100 confidence score
+  confidence     Float? // present only when a source supplies a defensible confidence measure
   methodology    String? // "Direct API ingestion of employer requisition signals"
   version        String         @default("v1.0")
   demandSignals  DemandSignal[]
@@ -1090,7 +1090,7 @@ model DemandSignal {
   skillId        String
   districtId     String?
   openPositions  Int
-  growthRateYoY  Float // e.g. +34.5%
+  growthRateYoY  Float? // calculated only when comparable historical observations exist
   recordedDate   DateTime   @default(now())
   sourceEntity   String?
   sourceEntityId String?

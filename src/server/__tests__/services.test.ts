@@ -119,11 +119,12 @@ describe("CareerIS Domain Services & Workflow Tests", () => {
     expect(feedback.performanceScore).toBe(5);
   });
 
-  it("should execute multi-category debounced global search across domain repositories", async () => {
+  it("should not fabricate geography results when no matching database evidence exists", async () => {
     const results = await searchService.globalSearch("Pune");
 
-    expect(results.districts.length).toBeGreaterThan(0);
-    expect(results.clusters.length).toBeGreaterThan(0);
+    expect(results.districts).toEqual([]);
+    expect(results.clusters).toEqual([]);
+    expect(Array.isArray(results.accounts)).toBe(true);
   });
 
   it("should register evidence metadata and enforce non-database large file storage abstraction", async () => {

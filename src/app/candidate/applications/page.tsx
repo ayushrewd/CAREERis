@@ -1,176 +1,31 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { platformStore, ApplicationRecord, ApplicationStage } from "@/lib/store/platformStore";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Briefcase, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Briefcase,
-  Building2,
-  CheckCircle2,
-  Clock,
-  FileCheck2,
-  Calendar,
-  ArrowRight,
-  MessageSquare,
-  ShieldCheck,
-} from "lucide-react";
-import Link from "next/link";
-import { formatDate } from "@/lib/utils";
-
-const STAGES: { stage: ApplicationStage; label: string }[] = [
-  { stage: "APPLIED", label: "Applied" },
-  { stage: "VIEWED", label: "Viewed" },
-  { stage: "SHORTLISTED", label: "Shortlisted" },
-  { stage: "ASSESSMENT_REQUESTED", label: "Assessment" },
-  { stage: "INTERVIEW_SCHEDULED", label: "Interview" },
-  { stage: "OFFERED", label: "Offer" },
-  { stage: "HIRED", label: "Hired" },
-];
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function CandidateApplicationsPage() {
-  const [applications, setApplications] = useState(platformStore.getApplications());
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    return platformStore.subscribe(() => {
-      setApplications(platformStore.getApplications());
-    });
+    fetch("/api/candidate/applications", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not load applications");
+        setApplications(body.applications || []);
+      })
+      .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load applications"))
+      .finally(() => setLoading(false));
   }, []);
 
-  const getStageIndex = (stage: ApplicationStage) => {
-    return STAGES.findIndex((s) => s.stage === stage);
-  };
-
-  return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-16">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5">
-        <div>
-          <div className="flex items-center gap-1.5 text-xs text-primary font-semibold mb-1">
-            <Briefcase className="w-3.5 h-3.5" />
-            <span>Real-time Application Tracker</span>
-          </div>
-          <h1 className="text-2xl font-bold font-heading text-foreground">
-            Application Status &amp; Hiring Pipeline
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Transparent tracking across every stage from initial submission to proctored assessment and technical interview.
-          </p>
-        </div>
-
-        <Badge variant="purple" className="text-xs">
-          {applications.length} Active in Pipeline
-        </Badge>
-      </div>
-
-      {/* Applications List */}
-      {applications.length === 0 ? (
-        <EmptyState
-          title="No active job applications"
-          description="Browse skill-mapped job opportunities and submit your verified application."
-          actionLabel="Explore Jobs"
-          onAction={() => {}}
-        />
-      ) : (
-        <div className="space-y-6">
-          {applications.map((app) => {
-            const currentIdx = getStageIndex(app.stage);
-            return (
-              <Card key={app.id} className="border-primary/20 hover:border-primary/40 transition-all">
-                <CardContent className="p-6 space-y-6">
-                  {/* Top Bar */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <span className="text-xs font-semibold text-primary flex items-center gap-1">
-                        <Building2 className="w-3.5 h-3.5" />
-                        {app.companyName}
-                      </span>
-                      <h3 className="text-lg font-bold text-foreground mt-0.5">
-                        {app.jobTitle}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Applied on {formatDate(app.appliedAt)} &bull; Explainable Skill Fit: <strong>{app.matchScore}%</strong>
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button asChild size="sm" variant="outline" className="text-xs gap-1">
-                        <Link href="/messages">
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          Message Recruiter
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Stage Progression Timeline */}
-                  <div className="space-y-2 pt-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Hiring Stage Timeline:
-                    </span>
-                    <div className="grid grid-cols-7 gap-1 text-center">
-                      {STAGES.map((s, idx) => {
-                        const isPast = idx < currentIdx;
-                        const isCurrent = idx === currentIdx;
-                        return (
-                          <div key={s.stage} className="space-y-1.5">
-                            <div
-                              className={`h-2 rounded-full transition-all ${
-                                isCurrent
-                                  ? "bg-primary shadow-sm"
-                                  : isPast
-                                  ? "bg-emerald-500"
-                                  : "bg-muted"
-                              }`}
-                            />
-                            <span
-                              className={`text-[10px] block truncate font-medium ${
-                                isCurrent
-                                  ? "text-primary font-bold"
-                                  : isPast
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {s.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Stage-specific Feedback & Next Actions */}
-                  {app.stage === "INTERVIEW_SCHEDULED" && (
-                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
-                      <div className="flex items-center gap-2 font-semibold">
-                        <Calendar className="w-4 h-4 text-emerald-600" />
-                        <span>Technical Interview Scheduled</span>
-                      </div>
-                      <p className="text-[11px] leading-relaxed">
-                        Monday, 02 March 2026 at 11:00 AM &bull; Tata Motors Chakan Plant 2 (Gate 3 Lab).
-                      </p>
-                    </div>
-                  )}
-
-                  {app.coverNote && (
-                    <div className="p-3.5 rounded-xl bg-muted/20 border text-xs space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Your Attached Submission Note:
-                      </span>
-                      <p className="text-muted-foreground text-[11px] leading-relaxed">
-                        &ldquo;{app.coverNote}&rdquo;
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+  return <main className="mx-auto max-w-5xl space-y-6 pb-16">
+    <header><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Applications</p><h1 className="mt-1 text-3xl font-extrabold">Your hiring pipeline</h1><p className="mt-2 text-sm text-muted-foreground">Every status shown here comes from the registered company handling your application.</p></header>
+    {error && <div className="rounded-xl border border-red-500/30 p-4 text-sm text-red-600">{error}</div>}
+    {loading ? <p className="text-sm text-muted-foreground">Loading persisted applications…</p> : applications.length === 0 ? <Card><CardContent className="p-10 text-center"><Briefcase className="mx-auto h-8 w-8 text-muted-foreground"/><h2 className="mt-3 font-bold">No applications yet</h2><p className="mt-1 text-sm text-muted-foreground">Applications appear after you apply to a registered company job.</p><Button asChild className="mt-4"><Link href="/jobs">Explore jobs</Link></Button></CardContent></Card> : <div className="space-y-3">{applications.map((application) => <Card key={application.id}><CardContent className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"><div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary"><Building2 className="h-4 w-4"/>{application.job.company.name}</p><h2 className="mt-1 text-lg font-bold">{application.job.title}</h2><p className="mt-2 text-xs text-muted-foreground">Applied {new Date(application.createdAt).toLocaleString()} · Match {application.matchScore == null ? "Insufficient evidence" : `${Math.round(application.matchScore)}%`}</p></div><Badge>{application.workflowStatus.replaceAll("_", " ")}</Badge></CardContent></Card>)}</div>}
+  </main>;
 }

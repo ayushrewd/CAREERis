@@ -1,45 +1,22 @@
-import { NextRequest } from "next/server";
-import { applicationService } from "@/server/services/applicationService";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/server/db/prisma";
 import { resolveAuthContext } from "@/server/middleware/authContext";
-import { successResponse, notFoundResponse, errorResponse } from "@/server/middleware/apiResponse";
-import { UpdateApplicationStageSchema } from "@/server/validators/commonValidators";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const app = await applicationService.getApplicationById(params.id);
-    if (!app) {
-      return notFoundResponse(`Application ${params.id} not found`);
-    }
-    return successResponse(app);
-  } catch (err: any) {
-    return errorResponse(err?.message || "Failed to fetch application", "FETCH_ERROR", 500);
+    const auth = resolveAuthContext(request);
+    const application = await prisma.application.findUnique({ where: { id: params.id }, include: { job: { include: { company: { include: { employerAccount: true } } } }, candidateProfile: true, history: { orderBy: { createdAt: "asc" } }, interviews: true, offer: true, placement: true } });
+    if (!application) return NextResponse.json({ error: "Application not found" }, { status: 404 });
+    const isCandidateOwner = auth.userRole === "CANDIDATE" && application.candidateProfile.userId === auth.userId;
+    const isCompanyOwner = auth.userRole === "EMPLOYER" && application.job.company.employerAccount?.userId === auth.userId;
+    if (!isCandidateOwner && !isCompanyOwner) return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    return NextResponse.json({ application });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not load application";
+    return NextResponse.json({ error: message }, { status: message === "Authentication required" ? 401 : 500 });
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const auth = resolveAuthContext(request);
-    const body = await request.json();
-    const parsed = UpdateApplicationStageSchema.safeParse(body);
-    if (!parsed.success) {
-      return errorResponse("Invalid stage update", "VALIDATION_ERROR", 400, parsed.error.format());
-    }
-
-    const updated = await applicationService.updateStage({
-      applicationId: params.id,
-      newStage: parsed.data.stage as any,
-      feedbackNotes: parsed.data.feedbackNotes,
-      auth,
-    });
-
-    return successResponse(updated);
-  } catch (err: any) {
-    return errorResponse(err?.message || "Failed to update application stage", "STAGE_UPDATE_ERROR", 400);
-  }
+export async function PATCH() {
+  return NextResponse.json({ error: "Use the company-owned hiring pipeline endpoint to change an application status." }, { status: 405 });
 }

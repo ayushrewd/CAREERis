@@ -7,6 +7,7 @@ import { calculateJobMatch } from "@/server/services/matching/jobMatchService";
 export async function GET(request: NextRequest) {
   try {
     const auth = resolveAuthContext(request);
+    if (auth.userRole !== "CANDIDATE") return NextResponse.json({ error: "Candidate account required" }, { status: 403 });
     const profile = await prisma.candidateProfile.findUnique({ where: { userId: auth.userId } });
     if (!profile) return NextResponse.json({ error: "Candidate profile not found" }, { status: 404 });
     const applications = await prisma.application.findMany({ where: { candidateProfileId: profile.id }, orderBy: { createdAt: "desc" }, include: { job: { include: { company: true } } } });

@@ -1,1 +1,1 @@
-import{RealOverview}from"@/components/intelligence/RealOverview";export default function GovernmentPage(){return <RealOverview/>}
+import{redirect}from"next/navigation";export default function GovernmentPage(){redirect("/government/skill-gaps")}

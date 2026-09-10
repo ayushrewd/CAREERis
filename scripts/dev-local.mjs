@@ -71,8 +71,8 @@ try {
   }
 
   await waitForDatabase();
-  console.log("[dev:local] Syncing the database with the current Prisma schema...");
-  await waitForExit(run(npxCommand, ["prisma", "db", "push", "--accept-data-loss"]));
+  console.log("[dev:local] Applying reproducible Prisma migrations...");
+  await waitForExit(run(npxCommand, ["prisma", "migrate", "deploy"]));
 
   console.log("[dev:local] Starting CAREERIS at http://localhost:3000 ...");
   const web = run(npmCommand, ["run", "dev"]);

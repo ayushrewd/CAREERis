@@ -2,10 +2,8 @@ import { describe, it, expect } from "vitest";
 import { resolveAuthContext, checkPermission, checkScopeAccess, RequestAuthContext } from "../middleware/authContext";
 
 describe("CareerIS Server RBAC and Geographic Scope Authorization", () => {
-  it("should resolve demo persona authentication context correctly", () => {
-    const candidateAuth = resolveAuthContext();
-    expect(candidateAuth.userRole).toBe("CANDIDATE");
-    expect(candidateAuth.fullName).toBe("Rohit Sharma");
+  it("should reject requests without a signed session", () => {
+    expect(() => resolveAuthContext()).toThrow("Authentication required");
   });
 
   it("should enforce RBAC permissions based on user role", () => {

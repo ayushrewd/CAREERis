@@ -6,3 +6,8 @@ node_modules/
 *.zip
 *.pdf
 tsconfig.tsbuildinfo
+
+.vercel
+.env*
+.agents/
+skills-lock.json

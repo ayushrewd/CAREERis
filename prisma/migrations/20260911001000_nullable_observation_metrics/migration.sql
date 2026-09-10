@@ -1,0 +1,3 @@
+ALTER TABLE "DataSource" ALTER COLUMN "confidence" DROP NOT NULL;
+ALTER TABLE "DataSource" ALTER COLUMN "confidence" DROP DEFAULT;
+ALTER TABLE "DemandSignal" ALTER COLUMN "growthRateYoY" DROP NOT NULL;

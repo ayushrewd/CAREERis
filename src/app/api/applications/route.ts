@@ -1,45 +1,26 @@
-import { NextRequest } from "next/server";
-import { applicationService } from "@/server/services/applicationService";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/server/db/prisma";
 import { resolveAuthContext } from "@/server/middleware/authContext";
-import { successResponse, errorResponse } from "@/server/middleware/apiResponse";
-import { CreateApplicationSchema } from "@/server/validators/commonValidators";
+export { POST } from "@/app/api/candidate/applications/route";
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const candidateId = searchParams.get("candidateId") || undefined;
-    const jobId = searchParams.get("jobId") || undefined;
-    const stage = searchParams.get("stage") || undefined;
-
-    const result = await applicationService.getApplications({ candidateId, jobId, stage });
-    return successResponse(result.items, {
-      page: 1,
-      pageSize: result.items.length,
-      total: result.total,
-    });
-  } catch (err: any) {
-    return errorResponse(err?.message || "Failed to fetch applications", "FETCH_ERROR", 500);
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
     const auth = resolveAuthContext(request);
-    const body = await request.json();
-    const parsed = CreateApplicationSchema.safeParse(body);
-    if (!parsed.success) {
-      return errorResponse("Invalid application submission", "VALIDATION_ERROR", 400, parsed.error.format());
+    if (auth.userRole === "CANDIDATE") {
+      const profile = await prisma.candidateProfile.findUnique({ where: { userId: auth.userId } });
+      if (!profile) return NextResponse.json({ applications: [] });
+      const applications = await prisma.application.findMany({ where: { candidateProfileId: profile.id }, include: { job: { include: { company: true } }, history: { orderBy: { createdAt: "asc" } } }, orderBy: { createdAt: "desc" } });
+      return NextResponse.json({ applications });
     }
-
-    const application = await applicationService.submitApplication({
-      jobId: parsed.data.jobId,
-      coverNote: parsed.data.coverNote,
-      selectedEvidenceIds: parsed.data.selectedEvidenceIds,
-      auth,
-    });
-
-    return successResponse(application, undefined, 201);
-  } catch (err: any) {
-    return errorResponse(err?.message || "Failed to submit application", "SUBMIT_ERROR", 500);
+    if (auth.userRole === "EMPLOYER") {
+      const account = await prisma.employerAccountProfile.findUnique({ where: { userId: auth.userId } });
+      if (!account?.companyId) return NextResponse.json({ applications: [] });
+      const applications = await prisma.application.findMany({ where: { job: { companyId: account.companyId } }, include: { job: true, candidateProfile: { include: { user: { select: { fullName: true, email: true } } } }, history: { orderBy: { createdAt: "asc" } } }, orderBy: { createdAt: "desc" } });
+      return NextResponse.json({ applications });
+    }
+    return NextResponse.json({ error: "Candidate or company account required" }, { status: 403 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not load applications";
+    return NextResponse.json({ error: message }, { status: message === "Authentication required" ? 401 : 500 });
   }
 }

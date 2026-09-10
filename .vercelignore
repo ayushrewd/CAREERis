@@ -1,0 +1,11 @@
+.agents/
+.careeris/
+.vscode/
+.next/
+node_modules/
+*.zip
+*.pdf
+*.tsbuildinfo
+.env
+.env.*
+!.env.example

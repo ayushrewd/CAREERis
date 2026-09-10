@@ -41,6 +41,7 @@ export function Sidebar() {
           { title: "Skill Gaps", href: "/candidate/readiness", icon: <Sparkles className="w-4 h-4" /> },
           { title: "Learning Path", href: "/candidate/learning", icon: <BrainCircuit className="w-4 h-4" /> },
           { title: "Explore Jobs", href: "/jobs", icon: <Briefcase className="w-4 h-4" /> },
+          { title: "Applications", href: "/candidate/applications", icon: <Briefcase className="w-4 h-4" /> },
           { title: "Projects", href: "/candidate/projects", icon: <ShieldCheck className="w-4 h-4" /> },
           { title: "Skill Passport", href: "/candidate/skill-passport", icon: <ShieldCheck className="w-4 h-4" /> },
           { title: "Messages", href: "/messages", icon: <MessageSquare className="w-4 h-4" /> },
