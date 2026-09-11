@@ -131,8 +131,10 @@ export default function CreateJobPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     setError("");
+    try {
     const response = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, requirements }) });
     const body = await response.json();
     if (!response.ok) {
@@ -141,6 +143,12 @@ export default function CreateJobPage() {
       return;
     }
     router.push("/employer/jobs");
+    router.refresh();
+    } catch {
+      setError("Could not reach the server. Your form is preserved; please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return <main className="mx-auto max-w-4xl space-y-6 pb-16">

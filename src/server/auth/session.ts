@@ -39,8 +39,8 @@ export function createSessionToken(
 
 export function readSessionToken(token?: string): SessionPayload | null {
   if (!token) return null;
-  const [encoded, signature] = token.split(".");
-  if (!encoded || !signature) return null;
+  const [encoded, signature, extra] = token.split(".");
+  if (!encoded || !signature || extra !== undefined) return null;
 
   const expected = Buffer.from(sign(encoded));
   const actual = Buffer.from(signature);
@@ -48,7 +48,7 @@ export function readSessionToken(token?: string): SessionPayload | null {
 
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as SessionPayload;
-    if (!payload.userId || !payload.sessionId || payload.expiresAt <= Date.now()) return null;
+    if (!payload.userId || !payload.sessionId || !Number.isFinite(payload.expiresAt) || payload.expiresAt <= Date.now()) return null;
     return payload;
   } catch {
     return null;

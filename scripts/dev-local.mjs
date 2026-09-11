@@ -1,5 +1,17 @@
 import { spawn } from "node:child_process";
 import { createConnection } from "node:net";
+import { readFileSync } from "node:fs";
+
+// Explicit local mode must not inherit the cloud URL from Next's .env.local.
+for (const line of readFileSync('.env', 'utf8').split(/\r?\n/)) {
+  const match = line.match(/^\s*(DATABASE_URL|DIRECT_URL|AUTH_SECRET|DATABASE_MODE)\s*=\s*(.*?)\s*$/);
+  if (match) process.env[match[1]] = match[2].replace(/^(["'])(.*)\1$/, '$2');
+}
+const localUrl = new URL(process.env.DATABASE_URL || '');
+if (!['localhost', '127.0.0.1'].includes(localUrl.hostname) || (localUrl.port && localUrl.port !== '5432')) {
+  throw new Error('dev:local requires a local DATABASE_URL on port 5432 in .env. Use npm run dev for the configured cloud database.');
+}
+process.env.DIRECT_URL = process.env.DATABASE_URL;
 
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
@@ -34,12 +46,16 @@ function canConnect(port, host = "127.0.0.1") {
 }
 
 async function waitForDatabase(timeoutMs = 30_000) {
+  const { PrismaClient } = await import('@prisma/client');
+  const probe = new PrismaClient();
   const deadline = Date.now() + timeoutMs;
+  try {
   while (Date.now() < deadline) {
-    if (await canConnect(5432)) return;
+    try { await probe.$queryRawUnsafe('SELECT 1'); return; } catch { /* Wait for database readiness, not just an open port. */ }
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
   throw new Error("The local CAREERIS database did not start within 30 seconds.");
+  } finally { await probe.$disconnect(); }
 }
 
 function waitForExit(child) {

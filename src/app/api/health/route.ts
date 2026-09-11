@@ -5,7 +5,7 @@ export async function GET() {
   const dbHealth = await checkDatabaseHealth();
 
   return successResponse({
-    status: "HEALTHY",
+    status: dbHealth.connected ? "HEALTHY" : "UNAVAILABLE",
     service: "CareerIS National Platform API",
     version: "2.0.0",
     environment: process.env.NODE_ENV || "development",
@@ -26,5 +26,5 @@ export async function GET() {
       auditLogger: "POSTGRESQL_FOR_OPERATIONAL_ACTIONS",
       evidenceStorage: "METADATA_ONLY_NO_BINARY_STORAGE",
     },
-  });
+  }, undefined, dbHealth.connected ? 200 : 503);
 }

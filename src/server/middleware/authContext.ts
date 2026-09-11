@@ -2,6 +2,21 @@ import { NextRequest } from "next/server";
 import { UserRole } from "@/types";
 import { hasPermission } from "@/lib/rbac";
 import { getRequestSession } from "@/server/auth/session";
+import { prisma } from "@/server/db/prisma";
+import { toAppRole } from "@/server/auth/publicUser";
+
+export async function resolveVerifiedAuthContext(request: NextRequest): Promise<RequestAuthContext> {
+  const session = getRequestSession(request);
+  if (!session) throw new Error('Authentication required');
+  const user = await prisma.user.findFirst({
+    where: { id: session.userId, isActive: true, sessions: { some: { token: session.sessionId, expiresAt: { gt: new Date() } } } },
+    include: { employerAccount: true, trainingProviderAccount: true },
+  });
+  if (!user) throw new Error('Authentication required');
+  return { userId: user.id, email: user.email, fullName: user.fullName, userRole: toAppRole(user.roleType),
+    assignedCompanyId: user.employerAccount?.companyId || undefined,
+    assignedProviderId: user.trainingProviderAccount?.trainingProviderId || undefined };
+}
 
 export interface RequestAuthContext {
   userId: string;

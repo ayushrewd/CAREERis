@@ -169,6 +169,7 @@ model User {
   receivedConnections      Connection[]                    @relation("ConnectionRecipient")
   conversationMemberships  ConversationParticipant[]
   userRoles                UserRole[]
+  submittedDataSources     DataSource[]
 }
 
 model Role {
@@ -406,6 +407,7 @@ model Skill {
   trainerSkills     TrainerSkill[]
   employerFeedback  EmployerFeedback[]
   embedding         SkillEmbedding?
+  technologySignals TechnologySignal[]
 
   @@index([normalizedName])
   @@index([skillType])
@@ -1072,6 +1074,7 @@ model AssessmentAttempt {
 
 model DataSource {
   id             String         @id @default(uuid())
+  submittedByUserId String?
   name           String // "Maharashtra State Employment Exchange", "NASSCOM Tech Pulse", "SIH Employer Survey"
   sourceType     DataSourceType
   collectionDate DateTime       @default(now())
@@ -1079,9 +1082,16 @@ model DataSource {
   geographyScope String // "ALL_INDIA", "MAHARASHTRA", "PUNE"
   confidence     Float? // present only when a source supplies a defensible confidence measure
   methodology    String? // "Direct API ingestion of employer requisition signals"
+  sourceUrl      String?
+  verificationStatus String @default("SELF_ATTESTED")
   version        String         @default("v1.0")
+  submittedBy    User?          @relation(fields: [submittedByUserId], references: [id], onDelete: SetNull)
   demandSignals  DemandSignal[]
   supplySignals  SupplySignal[]
+  technologySignals TechnologySignal[]
+
+  @@index([sourceType, collectionDate])
+  @@index([submittedByUserId])
 }
 
 model DemandSignal {
@@ -1090,6 +1100,7 @@ model DemandSignal {
   skillId        String
   districtId     String?
   openPositions  Int
+  proficiency    ProficiencyLevel?
   growthRateYoY  Float? // calculated only when comparable historical observations exist
   recordedDate   DateTime   @default(now())
   sourceEntity   String?
@@ -1097,6 +1108,9 @@ model DemandSignal {
   provenance     Json?
   dataSource     DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
   skill          Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([skillId, recordedDate])
+  @@index([districtId, recordedDate])
 }
 
 model SupplySignal {
@@ -1105,12 +1119,34 @@ model SupplySignal {
   skillId           String
   districtId        String?
   certifiedTrainees Int
+  proficiency       ProficiencyLevel?
   recordedDate      DateTime   @default(now())
   sourceEntity      String?
   sourceEntityId    String?
   provenance        Json?
   dataSource        DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
   skill             Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([skillId, recordedDate])
+  @@index([districtId, recordedDate])
+}
+
+model TechnologySignal {
+  id                    String     @id @default(uuid())
+  dataSourceId          String
+  skillId               String
+  title                 String
+  description           String?
+  sourceUrl             String
+  observedAt            DateTime
+  labourDemandValidated Boolean    @default(false)
+  validationEvidence    Json?
+  createdAt             DateTime   @default(now())
+  dataSource            DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  skill                 Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([dataSourceId, skillId])
+  @@index([skillId, observedAt])
 }
 
 model SkillGap {

@@ -56,8 +56,10 @@ export async function resolveOrCreateSkill(rawName: string, tx: Prisma.Transacti
     create: { code: "USER-DEFINED", name: "User and Industry Defined Skills" },
     update: {},
   });
-  return tx.skill.create({
-    data: {
+  return tx.skill.upsert({
+    where: { code: skillCode(normalizedName) },
+    update: {},
+    create: {
       categoryId: category.id,
       code: skillCode(normalizedName),
       name: rawName.trim() || displayName(normalizedName),

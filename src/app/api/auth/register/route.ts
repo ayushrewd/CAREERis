@@ -7,6 +7,7 @@ import { hashPassword } from "@/server/auth/password";
 import { createSessionToken, setSessionCookie } from "@/server/auth/session";
 import { toAppRole, toPublicUser } from "@/server/auth/publicUser";
 import { normalizeSkillName, resolveOrCreateSkill } from "@/server/services/skill/prismaSkillService";
+import { operationalError } from "@/server/middleware/operationalError";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,7 @@ const schema = z.object({
   education: z.string().trim().max(160).optional(),
   qualification: z.string().trim().max(160).optional(),
   experience: z.string().trim().max(500).optional(),
-  currentSkills: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
+  currentSkills: z.array(z.string().trim().min(1).max(80).refine(name => !!normalizeSkillName(name), 'Enter a valid skill name.')).max(30).default([]),
   targetRole: z.string().trim().max(160).optional(),
 }).superRefine((data, ctx) => {
   const requiredField: [string, string | undefined] | null =
@@ -67,7 +68,8 @@ export async function POST(request: Request) {
     const existing = await prisma.user.findUnique({ where: { email: data.email }, select: { id: true } });
     if (existing) return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
 
-    const user = await prisma.user.create({
+    const { user, session } = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
       data: {
         fullName: data.fullName,
         email: data.email,
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
             targetRole: data.targetRole || null,
             preferredStates: [],
             declaredSkills: {
-              create: Array.from(new Map(data.currentSkills.map((name) => [name.toLowerCase(), name])).entries()).map(([normalizedName, name]) => ({
+                create: Array.from(new Map(data.currentSkills.map((name) => [normalizeSkillName(name), name])).entries()).map(([normalizedName, name]) => ({
                 name,
                 normalizedName,
                 verificationStatus: "UNVERIFIED",
@@ -147,13 +149,12 @@ export async function POST(request: Request) {
     });
 
     if (user.candidateProfile && data.currentSkills.length) {
-      await prisma.$transaction(async (tx) => {
-        for (const rawName of data.currentSkills) {
+        for (const rawName of new Map(data.currentSkills.map(name => [normalizeSkillName(name), name])).values()) {
           const skill = await resolveOrCreateSkill(rawName, tx);
           const normalizedName = normalizeSkillName(rawName);
           await tx.candidateDeclaredSkill.update({
             where: { candidateProfileId_normalizedName: { candidateProfileId: user.candidateProfile!.id, normalizedName } },
-            data: { skillId: skill.id, name: skill.name, normalizedName: skill.normalizedName },
+            data: { skillId: skill.id, name: skill.name },
           });
           await tx.candidateSkill.upsert({
             where: { candidateProfileId_skillId: { candidateProfileId: user.candidateProfile!.id, skillId: skill.id } },
@@ -162,9 +163,8 @@ export async function POST(request: Request) {
           });
         }
         await tx.auditLog.create({ data: { userId: user.id, action: "ACCOUNT_REGISTER", entity: "User", entityId: user.id, newValue: { role: user.roleType } } });
-      });
     } else {
-      await prisma.auditLog.create({ data: { userId: user.id, action: "ACCOUNT_REGISTER", entity: "User", entityId: user.id, newValue: { role: user.roleType } } });
+      await tx.auditLog.create({ data: { userId: user.id, action: "ACCOUNT_REGISTER", entity: "User", entityId: user.id, newValue: { role: user.roleType } } });
     }
 
     const session = createSessionToken({
@@ -173,7 +173,7 @@ export async function POST(request: Request) {
       fullName: user.fullName,
       userRole: toAppRole(user.roleType),
     });
-    await prisma.session.create({
+    await tx.session.create({
       data: {
         userId: user.id,
         token: session.databaseToken,
@@ -182,17 +182,12 @@ export async function POST(request: Request) {
       },
     });
 
+    return { user, session };
+    });
     const response = NextResponse.json({ user: toPublicUser(user) }, { status: 201 });
     setSessionCookie(response, session.token);
     return response;
   } catch (error) {
-    console.error("Registration failed", error);
-    if (error instanceof Prisma.PrismaClientInitializationError) {
-      return NextResponse.json(
-        { error: "The CAREERIS database is unavailable. Start the app with npm run dev:local and try again." },
-        { status: 503 },
-      );
-    }
-    return NextResponse.json({ error: "Could not create the account. Please try again." }, { status: 500 });
+    return operationalError(error, "Could not create the account. Please try again.");
   }
 }

@@ -10,6 +10,7 @@ declare global {
 
 export function createPrismaClient(): PrismaClient {
   return new PrismaClient({
+    transactionOptions: { maxWait: 10_000, timeout: 30_000 },
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 }
@@ -63,8 +64,8 @@ export async function checkDatabaseHealth(): Promise<{
   } catch (err: any) {
     return {
       connected: false,
-      mode: "DEVELOPMENT_DEMO",
-      error: err?.message || "Connection refused",
+      mode: "POSTGRES",
+      error: "Database connection unavailable",
     };
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const candidatePages = ["/candidate/profile", "/candidate/goals", "/candidate/quiz", "/candidate/readiness", "/candidate/learning", "/candidate/projects", "/candidate/skill-passport", "/candidate/applications", "/candidate/jobs", "/candidate/messages", "/candidate/skills", "/candidate/assessments"];
-const employerPages = ["/employer/profile", "/employer/jobs", "/employer/feedback", "/employer/company"];
+const employerPages = ["/employer/profile", "/employer/jobs", "/employer/feedback", "/employer/evidence", "/employer/company"];
 const providerPages = ["/training-provider/profile", "/training-provider/courses", "/training-provider/curriculum", "/training-provider/trainers", "/training-provider/equipment"];
 const governmentPages = ["/government/skill-gaps", "/government/district-plans"];
 
@@ -12,11 +12,12 @@ function matches(pathname: string, routes: string[]) {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/api/v1/") || pathname.startsWith("/api/intelligence/") || pathname.startsWith("/api/training/")) {
+  const operationalIntelligenceApis = ["/api/intelligence/overview"];
+  if (pathname.startsWith("/api/v1/") || (pathname.startsWith("/api/intelligence/") && !matches(pathname, operationalIntelligenceApis)) || pathname.startsWith("/api/training/")) {
     return NextResponse.json({ error: "This legacy demo endpoint is not available in production." }, { status: 410 });
   }
   const operationalCandidateApis = ["/api/candidate/profile", "/api/candidate/goals", "/api/candidate/diagnostic", "/api/candidate/readiness", "/api/candidate/learning-path", "/api/candidate/projects", "/api/candidate/skill-passport", "/api/candidate/applications", "/api/candidate/role-evidence"];
-  const operationalEmployerApis = ["/api/employer/profile", "/api/employer/feedback", "/api/employer/jobs", "/api/employer/projects"];
+  const operationalEmployerApis = ["/api/employer/profile", "/api/employer/feedback", "/api/employer/evidence", "/api/employer/jobs", "/api/employer/projects"];
   const operationalGovernmentApis = ["/api/government/district-intelligence", "/api/government/district-plans"];
   const operationalProviderApis = ["/api/training-provider/profile", "/api/training-provider/courses", "/api/training-provider/trainers", "/api/training-provider/equipment"];
   if (pathname.startsWith("/api/candidate/") && !matches(pathname, operationalCandidateApis)) return NextResponse.json({ error: "This legacy candidate endpoint is not available in production." }, { status: 410 });

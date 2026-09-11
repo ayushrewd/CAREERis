@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { JobType, ProficiencyLevel } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
-import { resolveAuthContext } from "@/server/middleware/authContext";
+import { resolveVerifiedAuthContext } from "@/server/middleware/authContext";
 import { normalizeSkillName, resolveOrCreateSkill } from "@/server/services/skill/prismaSkillService";
+import { jobSchema } from "@/server/validation/job";
+import { operationalError } from "@/server/middleware/operationalError";
 
 const levels = new Set(Object.values(ProficiencyLevel));
 const jobTypes = new Set(Object.values(JobType));
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
     const mine = request.nextUrl.searchParams.get("mine") === "1";
     let companyId: string | undefined;
     if (mine) {
-      const auth = resolveAuthContext(request);
+      const auth = await resolveVerifiedAuthContext(request);
       if (auth.userRole !== "EMPLOYER") return NextResponse.json({ error: "Company account required" }, { status: 403 });
       const account = await prisma.employerAccountProfile.findUnique({ where: { userId: auth.userId } });
       companyId = account?.companyId || undefined;
@@ -46,21 +48,22 @@ export async function GET(request: NextRequest) {
       jobType: job.jobType, minExperience: job.minExperience, maxExperience: job.maxExperience,
       qualification: job.qualification, minSalaryINR: job.minSalaryINR, maxSalaryINR: job.maxSalaryINR,
       openPositions: job.openPositions, status: job.status, applications: job._count.applications, createdAt: job.createdAt,
-      requirements: [...job.declaredRequirements.map((item) => ({ name: item.name, proficiency: item.proficiency, mandatory: item.isMandatory })), ...job.jobSkills.map((item) => ({ name: item.skill.name, proficiency: item.requiredLevel, mandatory: item.isMandatory }))],
+      requirements: Array.from(new Map([...job.declaredRequirements.map((item) => ({ name: item.name, proficiency: item.proficiency, mandatory: item.isMandatory })), ...job.jobSkills.map((item) => ({ name: item.skill.name, proficiency: item.requiredLevel, mandatory: item.isMandatory }))].map(item => [normalizeSkillName(item.name), item])).values()),
     })) });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not load jobs";
-    return NextResponse.json({ error: message }, { status: message === "Authentication required" ? 401 : 500 });
+    return operationalError(error, "Could not load jobs. Please try again.");
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = resolveAuthContext(request);
+    const auth = await resolveVerifiedAuthContext(request);
     if (auth.userRole !== "EMPLOYER") return NextResponse.json({ error: "Company account required" }, { status: 403 });
     const account = await prisma.employerAccountProfile.findUnique({ where: { userId: auth.userId } });
     if (!account?.companyId || !account.canPostJobs) return NextResponse.json({ error: "This company account cannot publish jobs." }, { status: 403 });
-    const body = await request.json();
+    const parsed = jobSchema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(' ') }, { status: 400 });
+    const body = parsed.data;
     const requirements = Array.isArray(body.requirements) ? body.requirements.map((item: any) => ({
       name: String(item.name || "").trim(), normalizedName: normalizeSkillName(String(item.name || "")),
       proficiency: levels.has(item.proficiency) ? item.proficiency as ProficiencyLevel : ProficiencyLevel.INTERMEDIATE,
@@ -73,14 +76,17 @@ export async function POST(request: NextRequest) {
         companyId: account.companyId!, title: body.title.trim(), description: body.description.trim(),
         qualification: body.qualification?.trim() || null, locationText: body.location.trim(), sectorText: body.sector?.trim() || null,
         jobType: jobTypes.has(body.jobType) ? body.jobType as JobType : JobType.FULL_TIME,
-        minExperience: Math.max(0, Number(body.minExperience) || 0), maxExperience: body.maxExperience === "" ? null : Number(body.maxExperience) || null,
-        minSalaryINR: body.minSalaryINR === "" ? null : Number(body.minSalaryINR) || null,
-        maxSalaryINR: body.maxSalaryINR === "" ? null : Number(body.maxSalaryINR) || null,
+        minExperience: body.minExperience ?? 0, maxExperience: body.maxExperience ?? null,
+        minSalaryINR: body.minSalaryINR ?? null,
+        maxSalaryINR: body.maxSalaryINR ?? null,
         openPositions: Math.max(1, Number(body.openPositions) || 1), status: "ACTIVE",
       } });
       const source = await tx.dataSource.create({ data: { name: `CAREERIS company job ${created.id}`, sourceType: "JOB_POSTINGS", timePeriod: new Date().toISOString().slice(0, 10), geographyScope: body.location.trim(), confidence: null, methodology: "Direct requirement submitted by a registered CAREERIS company account", version: "1" } });
+      const resolvedSkillIds = new Set<string>();
       for (const requirement of requirements) {
         const skill = await resolveOrCreateSkill(requirement.name, tx);
+        if (resolvedSkillIds.has(skill.id)) continue;
+        resolvedSkillIds.add(skill.id);
         await tx.jobSkill.create({ data: { jobId: created.id, skillId: skill.id, requiredLevel: requirement.proficiency, isMandatory: requirement.isMandatory, weight: requirement.weight } });
         await tx.jobRequirement.create({ data: { jobId: created.id, name: skill.name, normalizedName: skill.normalizedName, proficiency: requirement.proficiency, isMandatory: requirement.isMandatory } });
         await tx.demandSignal.create({ data: { dataSourceId: source.id, skillId: skill.id, openPositions: created.openPositions, growthRateYoY: null, recordedDate: created.createdAt, sourceEntity: "JOB", sourceEntityId: created.id, provenance: { companyId: account.companyId, jobId: created.id } } });
@@ -90,7 +96,6 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ job }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not create job";
-    return NextResponse.json({ error: message }, { status: message === "Authentication required" ? 401 : 500 });
+    return operationalError(error, "Could not publish this job. Please try again.");
   }
 }

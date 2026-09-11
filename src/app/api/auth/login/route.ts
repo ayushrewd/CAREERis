@@ -4,6 +4,7 @@ import { prisma } from "@/server/db/prisma";
 import { verifyPassword } from "@/server/auth/password";
 import { createSessionToken, setSessionCookie } from "@/server/auth/session";
 import { toAppRole, toPublicUser } from "@/server/auth/publicUser";
+import { operationalError } from "@/server/middleware/operationalError";
 
 export const runtime = "nodejs";
 
@@ -57,7 +58,6 @@ export async function POST(request: Request) {
     setSessionCookie(response, session.token);
     return response;
   } catch (error) {
-    console.error("Login failed", error);
-    return NextResponse.json({ error: "Could not sign in. Please try again." }, { status: 500 });
+    return operationalError(error, "Could not sign in. Please try again.");
   }
 }

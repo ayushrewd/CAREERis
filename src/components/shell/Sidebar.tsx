@@ -52,6 +52,7 @@ export function Sidebar() {
           { title: "Company Dashboard", href: "/employer", icon: <Home className="w-4 h-4" /> },
           { title: "Company Jobs", href: "/employer/jobs", icon: <Briefcase className="w-4 h-4" /> },
           { title: "Post New Job", href: "/employer/jobs/new", icon: <Sparkles className="w-4 h-4" /> },
+          { title: "Industry Evidence", href: "/employer/evidence", icon: <BrainCircuit className="w-4 h-4" /> },
           { title: "Post-Hire Feedback", href: "/employer/feedback", icon: <ShieldCheck className="w-4 h-4" /> },
           { title: "Active Job Listings", href: "/jobs", icon: <Building2 className="w-4 h-4" /> },
           { title: "Network", href: "/employers", icon: <Users className="w-4 h-4" /> },
@@ -69,7 +70,7 @@ export function Sidebar() {
       case "DISTRICT_ADMIN":
       case "GOVERNMENT_ADMIN":
         return [
-          { title: "Government DSDO Hub", href: "/district-admin", icon: <Building2 className="w-4 h-4" /> },
+          { title: "Government DSDO Hub", href: "/government/skill-gaps", icon: <Building2 className="w-4 h-4" /> },
           { title: "District Skill Gaps", href: "/government/skill-gaps", icon: <ShieldCheck className="w-4 h-4" /> },
           { title: "District Training Plans", href: "/government/district-plans", icon: <Sparkles className="w-4 h-4" /> },
           { title: "Registered Companies", href: "/employers", icon: <Briefcase className="w-4 h-4" /> },
